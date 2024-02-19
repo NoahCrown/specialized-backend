@@ -1,0 +1,15 @@
+.env
+.venv
+backend/venv
+venv/
+flask_session
+.vscode
+config.js
+
+node_modules/
+backend/helpers/__pycache__
+__pycache__/
+*/__pycache__/
+*/*/__pycache__/
+*/*/*/__pycache__/
+backend/.python-version
