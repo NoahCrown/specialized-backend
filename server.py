@@ -9,6 +9,7 @@ from helpers.summarize import summarize_data
 from helpers.search import search_for_id, search_for_candidate, search_for_name
 from helpers.get_mockdata import extract_and_store, extract_and_store_work_history
 from helpers.get_cv_data_llama import extract_cv
+from helpers.sanitize_b64 import sanitize_base64, get_file_type_from_base64
 from helpers.bullhorn_access import BullhornAuthHelper, on_401_error
 from prompts.data_prompt import AGE_BASE_PROMPT, LANGUAGE_SKILL_BASE_PROMPT, LOCATION_BASE_PROMPT
 from prompts.prompt_database import read_item, SavePrompts, LoadPrompts, DeletePrompts
@@ -99,35 +100,46 @@ def search_candidate():
 @on_401_error(lambda: bullhorn_auth_helper.authenticate(USERNAME, PASSWORD))
 def get_candidate_pdf():
     try:
-        received_data= request.json
+        received_data = request.json
         candidate_id = received_data['candidateId']
         mode = received_data['mode']
-        if mode == "bullhorn" or mode == "CV_bullhorn":
+        files_data = {"files": []}
+
+        if mode in ["bullhorn", "CV_bullhorn"]:
             access_token = bullhorn_auth_helper.get_rest_token()
             search_candidate_file_by_id_url = f"entity/Candidate/{candidate_id}/fileAttachments?BhRestToken={access_token}&fields=id"
-            file_id = requests.get(SPECIALIZED_URL+search_candidate_file_by_id_url)
-            if file_id.status_code == 401:
-                error = file_id.json()
+            response = requests.get(SPECIALIZED_URL + search_candidate_file_by_id_url)
+            if response.status_code == 401:
+                error = response.json()
                 raise Exception(error["message"])
-            else:
-                pass
-            file_id = file_id.json()
-            file_id = file_id['data'][0]['id']
+            
+            file_attachments = response.json().get('data', [])
 
-            get_candidate_file_url = f"file/Candidate/{candidate_id}/{file_id}?BhRestToken={access_token}"
-            candidate_file = requests.get(SPECIALIZED_URL + get_candidate_file_url)
-            if candidate_file.status_code == 401:
-                error = candidate_file.json()
-                raise Exception(error["message"])
-            else:
-                pass
-            candidate_file = candidate_file.json()
-            candidate_file = candidate_file['File']['fileContent']
+            for attachment in file_attachments:
+                file_id = attachment['id']
+                get_candidate_file_url = f"file/Candidate/{candidate_id}/{file_id}?BhRestToken={access_token}"
+                candidate_file_response = requests.get(SPECIALIZED_URL + get_candidate_file_url)
+                if candidate_file_response.status_code == 401:
+                    error = candidate_file_response.json()
+                    raise Exception(error["message"])
+                
+                candidate_file_data = candidate_file_response.json()
+                file_content_base64 = candidate_file_data['File']['fileContent']
+                
+                file_content_base64 = sanitize_base64(file_content_base64)
+                file_type = get_file_type_from_base64(file_content_base64)
+                files_data["files"].append({"type": file_type, "candidateFile": file_content_base64})
+
         else:
             cache_key = 'uploaded_pdf'
-            candidate_file = cache.get(cache_key)
+            candidate_file_base64 = cache.get(cache_key)
+            
+            candidate_file_base64 = sanitize_base64(candidate_file_base64)
+            file_type = get_file_type_from_base64(candidate_file_base64)
+            
+            files_data["files"].append({"type": file_type, "candidateFile": candidate_file_base64})
 
-        return jsonify({"candidateFile": candidate_file})
+        return jsonify(files_data)
     except Exception as e:
         if "Bad 'BhRestToken' or timed-out." in str(e):
             raise Exception(str(e))
