@@ -43,14 +43,21 @@ class WorkExperience(BaseModel):
 class CandidateWorkHistory(BaseModel):
     workHistory: List[WorkExperience] = Field(description="A list detailing the work experiences or work history of the individual")
 
-def get_workhistory_from_text(text):
-
-    text_splitter = RecursiveCharacterTextSplitter(
-        chunk_size=3000,
-        chunk_overlap=20,
-        length_function=len,
-        is_separator_regex=False,
-    )
+def get_workhistory_from_text(lang, text):
+    if lang == 'en':
+        text_splitter = RecursiveCharacterTextSplitter(
+            chunk_size=3000,
+            chunk_overlap=20,
+            length_function=len,
+            is_separator_regex=False,
+        )
+    else:
+        text_splitter = RecursiveCharacterTextSplitter(
+            chunk_size=1000,
+            chunk_overlap=50,
+            length_function=len,
+            is_separator_regex=False,
+        )
     texts = text_splitter.split_text(text)
     response = ""
     for text in texts:
@@ -85,13 +92,21 @@ def get_workhistory_from_text(text):
         response = chain.invoke({"text": text, "response": response})
     return response
 
-def run_llama_candidate(query,text,parser):
-    text_splitter = RecursiveCharacterTextSplitter(
-        chunk_size=3000,
-        chunk_overlap=20,
-        length_function=len,
-        is_separator_regex=False,
-    )
+def run_llama_candidate(lang,query,text,parser):
+    if lang == 'en':
+        text_splitter = RecursiveCharacterTextSplitter(
+            chunk_size=3000,
+            chunk_overlap=20,
+            length_function=len,
+            is_separator_regex=False,
+        )
+    else:
+        text_splitter = RecursiveCharacterTextSplitter(
+            chunk_size=1000,
+            chunk_overlap=50,
+            length_function=len,
+            is_separator_regex=False,
+        )
     texts = text_splitter.split_text(text)
     response_candidate= ""
     for text in texts:
@@ -146,7 +161,7 @@ def extract_cv(pdf_file):
     query = init_query_translation + candidate_query
     candidate_parser = JsonOutputParser(pydantic_object=Candidate)
 
-    summarized_text = get_workhistory_from_text(text)
+    summarized_text = get_workhistory_from_text(lang,text)
 
     workhistory_query = """
         <<SYS>>
@@ -170,8 +185,8 @@ def extract_cv(pdf_file):
     workhistory_parser = JsonOutputParser(pydantic_object=CandidateWorkHistory)
 
     with ThreadPoolExecutor(max_workers=2) as executor:
-        future_task1 = executor.submit(run_llama_candidate, query, text, candidate_parser)
-        future_task2 = executor.submit(run_llama_candidate, workhistory_query, summarized_text, workhistory_parser)
+        future_task1 = executor.submit(run_llama_candidate, lang, query, text, candidate_parser)
+        future_task2 = executor.submit(run_llama_candidate, lang, workhistory_query, summarized_text, workhistory_parser)
         
         result_task1 = future_task1.result()
         result_task2 = future_task2.result()

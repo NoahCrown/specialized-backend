@@ -10,11 +10,13 @@ from helpers.search import search_for_id, search_for_candidate, search_for_name
 from helpers.get_mockdata import extract_and_store, extract_and_store_work_history
 from helpers.get_cv_data_llama import extract_cv
 from helpers.sanitize_b64 import sanitize_base64, get_file_type_from_base64
+from helpers.convert2pdf import convert_to_pdf
 from helpers.bullhorn_access import BullhornAuthHelper, on_401_error
 from prompts.data_prompt import AGE_BASE_PROMPT, LANGUAGE_SKILL_BASE_PROMPT, LOCATION_BASE_PROMPT
 from prompts.prompt_database import read_item, SavePrompts, LoadPrompts, DeletePrompts
 from flask_cors import CORS
 import requests
+import tempfile
 import json
 
 app = Flask(__name__)
@@ -123,21 +125,45 @@ def get_candidate_pdf():
                     error = candidate_file_response.json()
                     raise Exception(error["message"])
                 
-                candidate_file_data = candidate_file_response.json()
-                file_content_base64 = candidate_file_data['File']['fileContent']
+                candidate_file_response = candidate_file_response.json()
+                file_name = candidate_file_response['File']['name']
+                file_content_base64 = candidate_file_response['File']['fileContent']
+                file_type = get_file_type_from_base64(file_content_base64)  # Assuming it returns "PDF", "DOC", or "DOCX"
                 
-                file_content_base64 = sanitize_base64(file_content_base64)
-                file_type = get_file_type_from_base64(file_content_base64)
-                files_data["files"].append({"type": file_type, "candidateFile": file_content_base64})
+                # Decode base64 content to binary
+                file_bytes = base64.b64decode(file_content_base64)
+                
+                with tempfile.NamedTemporaryFile(delete=False, suffix=f'.{file_type.lower()}') as temp_file:
+                    temp_file_path = temp_file.name
+                    temp_file.write(file_bytes)
 
+                try:
+                    # Convert to PDF if not already in PDF
+                    if file_type != 'PDF':
+                        pdf_file_path = convert_to_pdf(temp_file_path)  # Implement this function
+                    else:
+                        pdf_file_path = temp_file_path
+
+                    # Read the PDF and encode it in base64
+                    with open(pdf_file_path, 'rb') as pdf_file:
+                        pdf_data = pdf_file.read()
+                    file_content_base64 = base64.b64encode(pdf_data).decode('utf-8')
+
+                    file_content_base64 = sanitize_base64(file_content_base64)
+                    files_data["files"].append({"type": "application/pdf", "candidateFile": file_content_base64, "fileName": file_name})
+                finally:
+                    # Cleanup temporary file
+                    os.remove(temp_file_path)
+                    if file_type != 'PDF' and pdf_file_path != temp_file_path:
+                        os.remove(pdf_file_path)
         else:
             cache_key = 'uploaded_pdf'
             candidate_file_base64 = cache.get(cache_key)
             
             candidate_file_base64 = sanitize_base64(candidate_file_base64)
-            file_type = get_file_type_from_base64(candidate_file_base64)
+            file_type = "application/pdf"
             
-            files_data["files"].append({"type": file_type, "candidateFile": candidate_file_base64})
+            files_data["files"].append({"type": file_type, "candidateFile": candidate_file_base64, "fileName":"uploadedPDF"})
 
         return jsonify(files_data)
     except Exception as e:
@@ -172,21 +198,31 @@ def extract_bullhorn_pdf():
             pass
         candidate_file = candidate_file.json()
         candidate_file = candidate_file['File']['fileContent']
-
-        decoded_b64 = base64.b64decode(candidate_file)
-
-        temp_path = 'temp.pdf'
-        base_path = os.path.abspath(os.path.dirname(__file__))  # Get the directory in which the script is located
-        file_path = os.path.join(base_path, temp_path)
-        with open(file_path, 'wb') as file:
-            file.write(decoded_b64)
-
-        extracted_data = extract_cv(file_path)
-        cache_key = 'extracted_cv'
-        cache.set(cache_key, extracted_data, timeout=60*60)
-        os.remove(file_path)
+        file_type = get_file_type_from_base64(candidate_file)  # Assuming it returns "PDF", "DOC", or "DOCX"
+                
+        # Decode base64 content to binary
+        file_bytes = base64.b64decode(candidate_file)
         
-        return extracted_data
+        # Define the temp file path with the correct suffix
+        with tempfile.NamedTemporaryFile(delete=False, suffix=f'.{file_type.lower()}') as temp_file:
+            temp_file_path = temp_file.name
+            temp_file.write(base64.b64decode(file_bytes))
+
+        try:
+            # Convert to PDF if not already in PDF
+            if file_type != 'PDF':
+                pdf_file_path = convert_to_pdf(temp_file_path)  # Implement this function
+            else:
+                pdf_file_path = temp_file_path
+
+            extracted_data = extract_cv(pdf_file_path)  # Implement this function
+            cache_key = 'extracted_cv'
+            cache.set(cache_key, extracted_data, timeout=60 * 60)
+        finally:
+            # Cleanup temporary file
+            os.remove(temp_file_path)
+            if file_type != 'PDF' and pdf_file_path != temp_file_path:
+                os.remove(pdf_file_path)
     except Exception as e:
         if "Bad 'BhRestToken' or timed-out." in str(e):
             raise Exception(str(e))
