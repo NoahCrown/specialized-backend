@@ -198,6 +198,7 @@ def extract_bullhorn_pdf():
             pass
         candidate_file = candidate_file.json()
         candidate_file = candidate_file['File']['fileContent']
+        candidate_file = sanitize_base64(candidate_file)
         file_type = get_file_type_from_base64(candidate_file)  # Assuming it returns "PDF", "DOC", or "DOCX"
                 
         # Decode base64 content to binary
@@ -206,7 +207,7 @@ def extract_bullhorn_pdf():
         # Define the temp file path with the correct suffix
         with tempfile.NamedTemporaryFile(delete=False, suffix=f'.{file_type.lower()}') as temp_file:
             temp_file_path = temp_file.name
-            temp_file.write(base64.b64decode(file_bytes))
+            temp_file.write(file_bytes)
 
         try:
             # Convert to PDF if not already in PDF
@@ -223,6 +224,7 @@ def extract_bullhorn_pdf():
             os.remove(temp_file_path)
             if file_type != 'PDF' and pdf_file_path != temp_file_path:
                 os.remove(pdf_file_path)
+        return extracted_data
     except Exception as e:
         if "Bad 'BhRestToken' or timed-out." in str(e):
             raise Exception(str(e))
