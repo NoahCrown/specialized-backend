@@ -339,13 +339,55 @@ def get_custom_prompt():
             raise Exception(str(e))
         else:
             return jsonify({"error": str(e)}), 500
+        
+@app.route('/api/filter_data', methods=['GET'])
+@on_401_error(lambda: bullhorn_auth_helper.authenticate(USERNAME, PASSWORD))
+def filter_data():
+    try:
+        received_data = request.json
+        filter_list = received_data.get("missingFields", [])  # Use .get to avoid KeyError if missingFields is not present
+
+        filter_dict = {
+            "age": "candidate.dateOfBirth IS NULL",
+            "languageSkills": "candidate.specialties IS EMPTY",
+            "location": "candidate.address.countryID=2378"
+        }
+
+        # Start building the query part for filters
+        query_filters = []
+        for field in filter_list:
+            if field in filter_dict:
+                query_filters.append(filter_dict[field])
+        query_filters = " AND ".join(query_filters)  # Combine all filters with AND
+
+        access_token = bullhorn_auth_helper.get_rest_token()
+        base_url = f'query/JobSubmission?BhRestToken={access_token}&fields=id,status,dateAdded,candidate,jobOrder&where=isDeleted=false'
+        if query_filters:  # If there are any filters, append them to the base_url
+            filter_job_submission_url = f"{base_url}&where={query_filters}&sort=-dateAdded&start=1&count=500"
+        else:  # If no filters, just use the base URL
+            filter_job_submission_url = f"query/JobSubmission?BhRestToken={access_token}&fields=id,status,dateAdded,candidate,jobOrder&where=isDeleted=false&sort=-dateAdded&start=1&count=500"
+
+        response = requests.get(SPECIALIZED_URL + filter_job_submission_url)
+        if response.status_code == 401:
+            error = response.json()
+            raise Exception(error["message"])
+
+        response_data = response.json()
+        return jsonify(response_data['data'])
+
+    except Exception as e:
+        if "Bad 'BhRestToken' or timed-out." in str(e):
+            raise Exception(str(e))
+        else:
+            return jsonify({"error": str(e)}), 500
+        
 
 @app.route('/api/process_data', methods=['GET'])
 @on_401_error(lambda: bullhorn_auth_helper.authenticate(USERNAME, PASSWORD))
 def handle_api_data():
     try:
         access_token = bullhorn_auth_helper.get_rest_token()
-        get_job_submission_url = f'query/JobSubmission?BhRestToken={access_token}&fields=id,status,candidate,jobOrder&where=isDeleted=false&sort=candidate.name&start=1&count=500'
+        get_job_submission_url = f'query/JobSubmission?BhRestToken={access_token}&fields=id,status,dateAdded,candidate,jobOrder&where=isDeleted=false&sort=-dateAdded&start=1&count=500'
 
         response = requests.get(SPECIALIZED_URL+get_job_submission_url)
         if response.status_code == 401:
