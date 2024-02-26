@@ -340,7 +340,7 @@ def get_custom_prompt():
         else:
             return jsonify({"error": str(e)}), 500
         
-@app.route('/api/filter_data', methods=['GET'])
+@app.route('/api/filter_data', methods=['POST'])
 @on_401_error(lambda: bullhorn_auth_helper.authenticate(USERNAME, PASSWORD))
 def filter_data():
     try:
