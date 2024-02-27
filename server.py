@@ -82,7 +82,7 @@ def search_candidate():
         received_name = request.json
         candidate_name = received_name["name"]
         access_token = bullhorn_auth_helper.get_rest_token()
-        search_candidate_by_name_url = f'search/JobSubmission?BhRestToken={access_token}&fields=id,status,dateAdded,candidate,jobOrder&query=candidate.name:{candidate_name}&sort=candidate.name'
+        search_candidate_by_name_url = f'search/Candidate?BhRestToken={access_token}&fields=id,firstName,lastName,status&query=name:{candidate_name} AND isDeleted:false&sort=name'
         candidate_data = requests.get(SPECIALIZED_URL+search_candidate_by_name_url)
         if candidate_data.status_code == 401:
             error = candidate_data.json()
@@ -348,9 +348,10 @@ def filter_data():
         filter_list = received_data.get("missingFields", [])  # Use .get to avoid KeyError if missingFields is not present
 
         filter_dict = {
-            "age": "candidate.dateOfBirth IS NULL",
-            "languageSkills": "candidate.specialties IS EMPTY",
-            "location": "candidate.address.countryID=2378"
+            "age": "-dateOfBirth:[* TO *]",
+            "languageSkillsEN": "-specialties.id:(2000044 OR 2000008 OR 2000009 OR 2000025 OR 2000010 OR 2000011 OR 2000042)",
+            "languageSkillsJP": "-specialties.id:(2000043 OR 2000015 OR 2000016 OR 2000026 OR 2000017 OR 2000018 OR 2000041)",
+            "location": "address.country.id:2378"
         }
 
         # Start building the query part for filters
@@ -361,11 +362,11 @@ def filter_data():
         query_filters = " AND ".join(query_filters)  # Combine all filters with AND
 
         access_token = bullhorn_auth_helper.get_rest_token()
-        base_url = f'query/JobSubmission?BhRestToken={access_token}&fields=id,status,dateAdded,candidate,jobOrder&where=isDeleted=false'
+        base_url = f'search/Candidate?BhRestToken={access_token}&fields=id,firstName,lastName,status'
         if query_filters:  # If there are any filters, append them to the base_url
-            filter_job_submission_url = f"{base_url}&where={query_filters}&sort=-dateAdded&start=1&count=500"
+            filter_job_submission_url = f"{base_url}&query={query_filters} AND isDeleted:false&sort=-dateAdded&start=1&count=500"
         else:  # If no filters, just use the base URL
-            filter_job_submission_url = f"query/JobSubmission?BhRestToken={access_token}&fields=id,status,dateAdded,candidate,jobOrder&where=isDeleted=false&sort=-dateAdded&start=1&count=500"
+            filter_job_submission_url = f"search/Candidate?BhRestToken={access_token}&query=isDeleted:false&fields=id,firstName,lastName,status&sort=-dateAdded&count=500"
 
         response = requests.get(SPECIALIZED_URL + filter_job_submission_url)
         if response.status_code == 401:
@@ -387,7 +388,7 @@ def filter_data():
 def handle_api_data():
     try:
         access_token = bullhorn_auth_helper.get_rest_token()
-        get_job_submission_url = f'query/JobSubmission?BhRestToken={access_token}&fields=id,status,dateAdded,candidate,jobOrder&where=isDeleted=false&sort=-dateAdded&start=1&count=500'
+        get_job_submission_url = f'search/Candidate?BhRestToken={access_token}&query=isDeleted:false&fields=id,firstName,lastName,status&sort=-dateAdded&count=500'
 
         response = requests.get(SPECIALIZED_URL+get_job_submission_url)
         if response.status_code == 401:
