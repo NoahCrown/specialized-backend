@@ -401,7 +401,7 @@ def handle_api_data():
         return response
 
     except Exception as e:
-        if "Bad 'BhRestToken' or timed-out." in str(e):
+        if "Bad 'BhRestToken' or timed-out." or 'message' in str(e):
             raise Exception(str(e))
         else:
             return jsonify({"error": str(e)}), 500
