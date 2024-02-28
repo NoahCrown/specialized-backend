@@ -453,16 +453,17 @@ def upload_file():
         pdf_data = pdf_file.read()
     pdf_data = base64.b64encode(pdf_data)
     pdf_data = pdf_data.decode("utf-8")
+    try:
+        extracted_data = extract_cv(file_path)
+        session['pdfFile'] = extracted_data
 
-    extracted_data = extract_cv(file_path)
-    session['pdfFile'] = extracted_data
-
-    cache_key = 'extracted_cv'
-    cache.set(cache_key, extracted_data, timeout=60*60)
-    # Cache key for the PDF file
-    cache_key = 'uploaded_pdf'
-    cache.set(cache_key, pdf_data, timeout=60*60)
-    os.remove(file_path)
+        cache_key = 'extracted_cv'
+        cache.set(cache_key, extracted_data, timeout=60*60)
+        # Cache key for the PDF file
+        cache_key = 'uploaded_pdf'
+        cache.set(cache_key, pdf_data, timeout=60*60)
+    finally:
+        os.remove(file_path)
 
     return extracted_data
 
