@@ -50,8 +50,11 @@ def get_candidate():
         
         candidate_workhistory = requests.get(SPECIALIZED_URL+search_candidate_workhistory_by_id_url)
         if candidate_workhistory.status_code == 401:
-            error = candidate_workhistory.json()
-            raise Exception(error["message"])
+            try:
+                error = candidate_workhistory.json()
+                raise Exception(error["message"])
+            except:
+                raise Exception(error["errorMessage"])
         else:
             pass
         candidate_workhistory = candidate_workhistory.json()
@@ -59,8 +62,11 @@ def get_candidate():
 
         candidate_data = requests.get(SPECIALIZED_URL+search_candidate_by_id_url)
         if candidate_data.status_code == 401:
-            error = candidate_data.json()
-            raise Exception(error["message"])
+            try:
+                error = candidate_data.json()
+                raise Exception(error["message"])
+            except:
+                raise Exception(error["errorMessage"])
         else:
             pass
         candidate_data = candidate_data.json()
@@ -85,8 +91,11 @@ def search_candidate():
         search_candidate_by_name_url = f'search/Candidate?BhRestToken={access_token}&fields=id,firstName,lastName,status&query=name:{candidate_name} AND isDeleted:false&sort=name'
         candidate_data = requests.get(SPECIALIZED_URL+search_candidate_by_name_url)
         if candidate_data.status_code == 401:
-            error = candidate_data.json()
-            raise Exception(error["message"])
+            try:
+                error = candidate_data.json()
+                raise Exception(error["message"])
+            except:
+                raise Exception(error["errorMessage"])
         else:
             pass
         candidate_data = candidate_data.json()
@@ -112,8 +121,11 @@ def get_candidate_pdf():
             search_candidate_file_by_id_url = f"entity/Candidate/{candidate_id}/fileAttachments?BhRestToken={access_token}&fields=id"
             response = requests.get(SPECIALIZED_URL + search_candidate_file_by_id_url)
             if response.status_code == 401:
-                error = response.json()
-                raise Exception(error["message"])
+                try:
+                    error = response.json()
+                    raise Exception(error["message"])
+                except:
+                    raise Exception(error["errorMessage"])
             
             file_attachments = response.json().get('data', [])
 
@@ -122,8 +134,11 @@ def get_candidate_pdf():
                 get_candidate_file_url = f"file/Candidate/{candidate_id}/{file_id}?BhRestToken={access_token}"
                 candidate_file_response = requests.get(SPECIALIZED_URL + get_candidate_file_url)
                 if candidate_file_response.status_code == 401:
-                    error = candidate_file_response.json()
-                    raise Exception(error["message"])
+                    try:
+                        error = candidate_file_response.json()
+                        raise Exception(error["message"])
+                    except:
+                        raise Exception(error["errorMessage"])
                 
                 candidate_file_response = candidate_file_response.json()
                 file_name = candidate_file_response['File']['name']
@@ -182,8 +197,11 @@ def extract_bullhorn_pdf():
         search_candidate_file_by_id_url = f"entity/Candidate/{candidate_id}/fileAttachments?BhRestToken={access_token}&fields=id"
         file_id = requests.get(SPECIALIZED_URL+search_candidate_file_by_id_url)
         if file_id.status_code == 401:
-            error = file_id.json()
-            raise Exception(error["message"])
+            try:
+                error = file_id.json()
+                raise Exception(error["message"])
+            except:
+                raise Exception(error["errorMessage"])
         else:
             pass
         file_id = file_id.json()
@@ -192,8 +210,11 @@ def extract_bullhorn_pdf():
         get_candidate_file_url = f"file/Candidate/{candidate_id}/{file_id}?BhRestToken={access_token}"
         candidate_file = requests.get(SPECIALIZED_URL + get_candidate_file_url)
         if candidate_file.status_code == 401:
-            error = candidate_file.json()
-            raise Exception(error["message"])
+            try:
+                error = candidate_file.json()
+                raise Exception(error["message"])
+            except:
+                raise Exception(error["errorMessage"])
         else:
             pass
         candidate_file = candidate_file.json()
@@ -302,8 +323,11 @@ def get_custom_prompt():
         if mode == "bullhorn":
             candidate_data = requests.get(SPECIALIZED_URL+search_candidate_by_id_url)
             if candidate_data.status_code == 401:
-                error = candidate_data.json()
-                raise Exception(error["message"])
+                try:
+                    error = candidate_data.json()
+                    raise Exception(error["message"])
+                except:
+                    raise Exception(error["errorMessage"])
             else:
                 pass
             candidate_data = candidate_data.json()
@@ -311,8 +335,11 @@ def get_custom_prompt():
             if (infer_data == "age" and candidate_data["dateOfBirth"] is None) or (infer_data == "location" and mode == "bullhorn") or (infer_data == "languageSkills"):
                 candidate_workhistory = requests.get(SPECIALIZED_URL+search_candidate_workhistory_by_id_url)
                 if candidate_workhistory.status_code == 401:
-                    error = candidate_workhistory.json()
-                    raise Exception(error["message"])
+                    try:
+                        error = candidate_workhistory.json()
+                        raise Exception(error["message"])
+                    except:
+                        raise Exception(error["errorMessage"])
                 else:
                     pass
                 candidate_workhistory = candidate_workhistory.json()
@@ -370,8 +397,11 @@ def filter_data():
 
         response = requests.get(SPECIALIZED_URL + filter_job_submission_url)
         if response.status_code == 401:
-            error = response.json()
-            raise Exception(error["message"])
+            try:
+                error = response.json()
+                raise Exception(error["message"])
+            except:
+                raise Exception(error["errorMessage"])
 
         response_data = response.json()
         return jsonify(response_data['data'])
@@ -392,8 +422,11 @@ def handle_api_data():
 
         response = requests.get(SPECIALIZED_URL+get_job_submission_url)
         if response.status_code == 401:
-            error = response.json()
-            raise Exception(error["message"])
+            try:
+                error = response.json()
+                raise Exception(error["message"])
+            except:
+                raise Exception(error["errorMessage"])
         else:
             pass
         response = response.json()

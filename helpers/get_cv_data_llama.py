@@ -37,7 +37,7 @@ class WorkExperience(BaseModel):
     companyName: str = Field(description="Name of the company associated with the work experience")
     endDate: int = Field(description="End date of the work experience, represented as an epoch timestamp")
     isLastJob: bool = Field(description="Indicates whether this position was the candidate's most recent job")
-    startDate: str = Field(description="Start date of the work experience, can be a specific date or period")
+    startDate: str = Field(description="Start date of the work experience, represented as an epoch timestamp")
     title: str = Field(description="Job title or position held during this work experience")
 
 class CandidateWorkHistory(BaseModel):
