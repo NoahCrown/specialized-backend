@@ -3,28 +3,17 @@
 # Exit immediately if a command exits with a non-zero status.
 set -e
 
-# Download and extract LibreOffice
-echo "Downloading LibreOffice..."
-wget -q https://download.documentfoundation.org/libreoffice/stable/24.2.0/deb/x86_64/LibreOffice_24.2.0_Linux_x86-64_deb.tar.gz
-tar -xzf LibreOffice_24.2.0_Linux_x86-64_deb.tar.gz
+# Define LibreOffice version and AppImage URL
+APPIMAGE_URL="https://appimages.libreitalia.org/LibreOffice-fresh.full-x86_64.AppImage"
 
-cd LibreOffice_*_Linux_x86-64_deb/DEBS
-# Navigate to the DEBS directory
+# Download LibreOffice AppImage
+echo "Downloading LibreOffice AppImage..."
+wget -q -O "${HOME}/LibreOffice.AppImage" "$APPIMAGE_URL"
 
-# Install LibreOffice locally
-echo "Installing LibreOffice..."
-# Create the target directory
-mkdir -p "${HOME}/libreoffice"
-echo "${HOME}/libreoffice"
+# Make the AppImage executable
+chmod +x "${HOME}/LibreOffice.AppImage"
 
-# Extract each .deb package into the target directory
-for deb in *.deb; do
-    dpkg -x "$deb" "${HOME}/libreoffice"
-done
+# Optionally, add a function to run LibreOffice to your .bashrc or .profile for convenience
+echo "alias libreoffice='${HOME}/LibreOffice.AppImage'" >> ${HOME}/.bashrc
 
-libreoffice_program_dir=$(find ${HOME}/libreoffice/opt -name 'program' -type d | head -n 1)
-if [ -n "$libreoffice_program_dir" ]; then
-    echo "export PATH=\$PATH:$libreoffice_program_dir" >> ${HOME}/.profile
-else
-    echo "LibreOffice program directory not found."
-fi
+echo "LibreOffice AppImage download complete. You can run it with ./LibreOffice.AppImage or use the alias 'libreoffice' if you restart your terminal or source your profile/bashrc file."

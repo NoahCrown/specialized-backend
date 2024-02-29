@@ -43,29 +43,19 @@ def convert_to_pdf(input_file_path):
 
 def get_libreoffice_executable():
     """
-    Determine the path to the LibreOffice executable depending on the operating system.
+    Determine the path to the LibreOffice executable or AppImage depending on the operating system.
     """
     if platform.system() == "Windows":
         return r"C:\Program Files\LibreOffice\program\soffice.exe"
     elif platform.system() == "Linux":
-        # Define a list of possible paths where LibreOffice might be installed
-        possible_paths = [
-            os.path.expanduser("~/libreoffice/opt/libreoffice*/program/soffice"),
-            "~/libreoffice/opt/libreoffice*/program/soffice",
-            "~/project/src/libreoffice/opt/libreoffice*/program/soffice", # Custom path for Render or similar deployments
-            "/usr/bin/soffice", # Common path for system-wide installations
-            "/usr/local/bin/soffice", # Another common path for system-wide installations
-            "/opt/libreoffice*/program/soffice" # Default installation path for some distributions
-        ]
+        # Specify the path to your LibreOffice AppImage
+        appimage_path = os.path.expanduser("~/LibreOffice.AppImage")
         
-        # Attempt to find the executable in the possible paths
-        for path_pattern in possible_paths:
-            matches = glob.glob(path_pattern)
-            if matches:
-                # Assuming the first match is the correct one
-                return matches[0]
-        
-        # If no executable is found in the possible paths, raise an error
-        raise FileNotFoundError("LibreOffice executable not found in any of the expected locations")
+        if os.path.isfile(appimage_path):
+            return appimage_path
+
+        # If the AppImage is not found, raise an error
+        raise FileNotFoundError("LibreOffice AppImage not found. Ensure it is downloaded and the path is correct.")
+    
     else:
         raise OSError("Unsupported operating system")
