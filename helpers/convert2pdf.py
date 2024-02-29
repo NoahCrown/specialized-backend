@@ -1,5 +1,6 @@
 import subprocess
 import platform
+import glob
 import os
 
 def convert_to_pdf(input_file_path):
@@ -47,6 +48,12 @@ def get_libreoffice_executable():
     if platform.system() == "Windows":
         return r"C:\Program Files\LibreOffice\program\soffice.exe"
     elif platform.system() == "Linux":
-        return "/usr/bin/libreoffice"  # Default path on many Linux distributions
+        # Adjusted path for Render deployment
+        possible_paths = glob.glob(os.path.expanduser("~/libreoffice/opt/libreoffice*/program/soffice"))
+        if possible_paths:
+            # Assuming the first match is the correct one
+            return possible_paths[0]
+        else:
+            raise FileNotFoundError("LibreOffice executable not found in expected location")
     else:
         raise OSError("Unsupported operating system")
