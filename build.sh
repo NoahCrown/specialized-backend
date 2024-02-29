@@ -22,5 +22,9 @@ for deb in *.deb; do
     dpkg -x "$deb" "${HOME}/libreoffice"
 done
 
-# Add the LibreOffice program directory to PATH
-echo "export PATH=\$PATH:${HOME}/libreoffice/opt/libreoffice24.2.0/program" >> ${HOME}/.profile
+libreoffice_program_dir=$(find ${HOME}/libreoffice/opt -name 'program' -type d | head -n 1)
+if [ -n "$libreoffice_program_dir" ]; then
+    echo "export PATH=\$PATH:$libreoffice_program_dir" >> ${HOME}/.profile
+else
+    echo "LibreOffice program directory not found."
+fi
