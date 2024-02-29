@@ -13,10 +13,13 @@ cd LibreOffice_*_Linux_x86-64_deb/DEBS
 
 # Install LibreOffice locally
 echo "Installing LibreOffice..."
-dpkg -x *.deb ${HOME}/libreoffice
+# Create the target directory
+mkdir -p "${HOME}/libreoffice"
 
-# Navigate back to the original directory
-cd ../../..
+# Extract each .deb package into the target directory
+for deb in *.deb; do
+    dpkg -x "$deb" "${HOME}/libreoffice"
+done
 
-# Add LibreOffice program directory to PATH (modify .profile or similar)
+# Add the LibreOffice program directory to PATH
 echo "export PATH=\$PATH:${HOME}/libreoffice/opt/libreoffice*/program" >> ${HOME}/.profile
