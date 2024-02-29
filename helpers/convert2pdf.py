@@ -48,12 +48,24 @@ def get_libreoffice_executable():
     if platform.system() == "Windows":
         return r"C:\Program Files\LibreOffice\program\soffice.exe"
     elif platform.system() == "Linux":
-        # Adjusted path for Render deployment
-        possible_paths = glob.glob(os.path.expanduser("~/libreoffice/opt/libreoffice*/program/soffice"))
-        if possible_paths:
-            # Assuming the first match is the correct one
-            return possible_paths[0]
-        else:
-            raise FileNotFoundError("LibreOffice executable not found in expected location")
+        # Define a list of possible paths where LibreOffice might be installed
+        possible_paths = [
+            os.path.expanduser("~/libreoffice/opt/libreoffice*/program/soffice"),
+            "~/libreoffice/opt/libreoffice*/program/soffice",
+            "~/project/src/libreoffice/opt/libreoffice*/program/soffice", # Custom path for Render or similar deployments
+            "/usr/bin/soffice", # Common path for system-wide installations
+            "/usr/local/bin/soffice", # Another common path for system-wide installations
+            "/opt/libreoffice*/program/soffice" # Default installation path for some distributions
+        ]
+        
+        # Attempt to find the executable in the possible paths
+        for path_pattern in possible_paths:
+            matches = glob.glob(path_pattern)
+            if matches:
+                # Assuming the first match is the correct one
+                return matches[0]
+        
+        # If no executable is found in the possible paths, raise an error
+        raise FileNotFoundError("LibreOffice executable not found in any of the expected locations")
     else:
         raise OSError("Unsupported operating system")
