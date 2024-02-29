@@ -143,8 +143,9 @@ def get_candidate_pdf():
                 candidate_file_response = candidate_file_response.json()
                 file_name = candidate_file_response['File']['name']
                 file_content_base64 = candidate_file_response['File']['fileContent']
+                file_content_base64 = sanitize_base64(file_content_base64)
                 file_type = get_file_type_from_base64(file_content_base64)  # Assuming it returns "PDF", "DOC", or "DOCX"
-                
+
                 # Decode base64 content to binary
                 file_bytes = base64.b64decode(file_content_base64)
                 
