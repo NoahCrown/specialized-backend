@@ -23,4 +23,4 @@ for deb in *.deb; do
 done
 
 # Add the LibreOffice program directory to PATH
-echo "export PATH=\$PATH:${HOME}/libreoffice/opt/libreoffice*/program" >> ${HOME}/.profile
+echo "export PATH=\$PATH:${HOME}/libreoffice/opt/libreoffice24.2.0/program" >> ${HOME}/.profile
