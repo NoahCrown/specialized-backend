@@ -15,6 +15,7 @@ cd LibreOffice_*_Linux_x86-64_deb/DEBS
 echo "Installing LibreOffice..."
 # Create the target directory
 mkdir -p "${HOME}/libreoffice"
+echo "${HOME}/libreoffice"
 
 # Extract each .deb package into the target directory
 for deb in *.deb; do
