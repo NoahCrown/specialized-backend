@@ -10,7 +10,7 @@ from helpers.search import search_for_id, search_for_candidate, search_for_name
 from helpers.get_mockdata import extract_and_store, extract_and_store_work_history
 from helpers.get_cv_data_llama import extract_cv
 from helpers.sanitize_b64 import sanitize_base64, get_file_type_from_base64
-from helpers.convert2pdf import convert_to_pdf
+from helpers.convert2pdf_spire import convert_to_pdf
 from helpers.bullhorn_access import BullhornAuthHelper, on_401_error
 from prompts.data_prompt import AGE_BASE_PROMPT, LANGUAGE_SKILL_BASE_PROMPT, LOCATION_BASE_PROMPT
 from prompts.prompt_database import read_item, SavePrompts, LoadPrompts, DeletePrompts
