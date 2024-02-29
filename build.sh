@@ -5,7 +5,7 @@ set -e
 
 # Download and extract LibreOffice
 echo "Downloading LibreOffice..."
-wget -q https://www.libreoffice.org/donate/dl/deb-x86_64/24.2.0/en-US/LibreOffice_24.2.0_Linux_x86-64_deb.tar.gz
+wget -q https://download.documentfoundation.org/libreoffice/stable/24.2.0/deb/x86_64/LibreOffice_24.2.0_Linux_x86-64_deb.tar.gz
 tar -xzf LibreOffice_24.2.0_Linux_x86-64_deb.tar.gz
 
 # Navigate to the DEBS directory
