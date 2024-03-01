@@ -45,8 +45,8 @@ def get_candidate():
         received_id = request.json
         candidate_id = received_id["candidateId"]
         access_token = bullhorn_auth_helper.get_rest_token()
-        search_candidate_by_id_url = f'search/Candidate?BhRestToken={access_token}&query=id:{candidate_id}&fields=id,firstName,lastName,email,phone,dateOfBirth,certifications,ethnicity,primarySkills,educationDegree,comments,secondarySkills,skillSet,specialties'
-        search_candidate_workhistory_by_id_url=f'query/CandidateWorkHistory?BhRestToken={access_token}&fields=id,candidate,startDate,endDate,companyName,title,isLastJob,comments,jobOrder&where=candidate.id={candidate_id}'
+        search_candidate_by_id_url = f'search/Candidate?BhRestToken={access_token}&query=id:{candidate_id}&fields=id,firstName,lastName,email,phone,dateOfBirth,address,certifications,ethnicity,primarySkills,educationDegree,comments,secondarySkills,skillSet,specialties'
+        search_candidate_workhistory_by_id_url=f'query/CandidateWorkHistory?BhRestToken={access_token}&fields=id,startDate,endDate,companyName,title,isLastJob,comments,jobOrder&where=candidate.id={candidate_id}'
         
         candidate_workhistory = requests.get(SPECIALIZED_URL+search_candidate_workhistory_by_id_url)
         if candidate_workhistory.status_code == 401:
@@ -54,7 +54,7 @@ def get_candidate():
                 error = candidate_workhistory.json()
                 raise Exception(error["message"])
             except:
-                raise Exception(error["errorMessage"])
+                raise Exception(error)
         else:
             pass
         candidate_workhistory = candidate_workhistory.json()
@@ -66,7 +66,7 @@ def get_candidate():
                 error = candidate_data.json()
                 raise Exception(error["message"])
             except:
-                raise Exception(error["errorMessage"])
+                raise Exception(error)
         else:
             pass
         candidate_data = candidate_data.json()
@@ -76,7 +76,7 @@ def get_candidate():
         return candidate_data
 
     except Exception as e:
-        if "Bad 'BhRestToken' or timed-out." in str(e):
+        if "Bad 'BhRestToken' or timed-out." or "BhRestToken" in str(e):
             raise Exception(str(e))
         else:
             return jsonify({"error": str(e)}), 500
@@ -95,14 +95,14 @@ def search_candidate():
                 error = candidate_data.json()
                 raise Exception(error["message"])
             except:
-                raise Exception(error["errorMessage"])
+                raise Exception(error)
         else:
             pass
         candidate_data = candidate_data.json()
         candidate_data = candidate_data['data']
         return candidate_data
     except Exception as e:
-        if "Bad 'BhRestToken' or timed-out." in str(e):
+        if "Bad 'BhRestToken' or timed-out." or "BhRestToken" in str(e):
             raise Exception(str(e))
         else:
             return jsonify({"error": str(e)}), 500
@@ -125,7 +125,7 @@ def get_candidate_pdf():
                     error = response.json()
                     raise Exception(error["message"])
                 except:
-                    raise Exception(error["errorMessage"])
+                    raise Exception(error)
             
             file_attachments = response.json().get('data', [])
 
@@ -138,7 +138,7 @@ def get_candidate_pdf():
                         error = candidate_file_response.json()
                         raise Exception(error["message"])
                     except:
-                        raise Exception(error["errorMessage"])
+                        raise Exception(error)
                 
                 candidate_file_response = candidate_file_response.json()
                 file_name = candidate_file_response['File']['name']
@@ -183,7 +183,7 @@ def get_candidate_pdf():
 
         return jsonify(files_data)
     except Exception as e:
-        if "Bad 'BhRestToken' or timed-out." in str(e):
+        if "Bad 'BhRestToken' or timed-out." or "BhRestToken" in str(e):
             raise Exception(str(e))
         else:
             return jsonify({"error": str(e)}), 500
@@ -202,7 +202,7 @@ def extract_bullhorn_pdf():
                 error = file_id.json()
                 raise Exception(error["message"])
             except:
-                raise Exception(error["errorMessage"])
+                raise Exception(error)
         else:
             pass
         file_id = file_id.json()
@@ -215,7 +215,7 @@ def extract_bullhorn_pdf():
                 error = candidate_file.json()
                 raise Exception(error["message"])
             except:
-                raise Exception(error["errorMessage"])
+                raise Exception(error)
         else:
             pass
         candidate_file = candidate_file.json()
@@ -248,7 +248,7 @@ def extract_bullhorn_pdf():
                 os.remove(pdf_file_path)
         return extracted_data
     except Exception as e:
-        if "Bad 'BhRestToken' or timed-out." in str(e):
+        if "Bad 'BhRestToken' or timed-out." or "BhRestToken" in str(e):
             raise Exception(str(e))
         else:
             return jsonify({"error": str(e)}), 500
@@ -319,7 +319,7 @@ def get_custom_prompt():
         infer_data = received_data["dataToInfer"]
         mode = received_data["mode"]
         access_token = bullhorn_auth_helper.get_rest_token()
-        search_candidate_by_id_url = f'search/Candidate?BhRestToken={access_token}&query=id:{candidate_id}&fields=id,firstName,lastName,email,phone,dateOfBirth,certifications,ethnicity,primarySkills,educationDegree,comments,secondarySkills,skillSet,specialties'
+        search_candidate_by_id_url = f'search/Candidate?BhRestToken={access_token}&query=id:{candidate_id}&fields=id,firstName,lastName,email,phone,dateOfBirth,address,certifications,ethnicity,primarySkills,educationDegree,comments,secondarySkills,skillSet,specialties'
         search_candidate_workhistory_by_id_url=f'query/CandidateWorkHistory?BhRestToken={access_token}&fields=id,candidate,startDate,endDate,companyName,title,isLastJob,comments,jobOrder&where=candidate.id={candidate_id}'
         if mode == "bullhorn":
             candidate_data = requests.get(SPECIALIZED_URL+search_candidate_by_id_url)
@@ -328,7 +328,7 @@ def get_custom_prompt():
                     error = candidate_data.json()
                     raise Exception(error["message"])
                 except:
-                    raise Exception(error["errorMessage"])
+                    raise Exception(error)
             else:
                 pass
             candidate_data = candidate_data.json()
@@ -340,7 +340,7 @@ def get_custom_prompt():
                         error = candidate_workhistory.json()
                         raise Exception(error["message"])
                     except:
-                        raise Exception(error["errorMessage"])
+                        raise Exception(error)
                 else:
                     pass
                 candidate_workhistory = candidate_workhistory.json()
@@ -363,7 +363,7 @@ def get_custom_prompt():
                 response = summarize_data(candidate_data, custom_prompt, infer_data)
         return response
     except Exception as e:
-        if "Bad 'BhRestToken' or timed-out." in str(e):
+        if "Bad 'BhRestToken' or timed-out." or "BhRestToken" in str(e):
             raise Exception(str(e))
         else:
             return jsonify({"error": str(e)}), 500
@@ -402,13 +402,13 @@ def filter_data():
                 error = response.json()
                 raise Exception(error["message"])
             except:
-                raise Exception(error["errorMessage"])
+                raise Exception(error)
 
         response_data = response.json()
         return jsonify(response_data['data'])
 
     except Exception as e:
-        if "Bad 'BhRestToken' or timed-out." in str(e):
+        if "Bad 'BhRestToken' or timed-out." or "BhRestToken" in str(e):
             raise Exception(str(e))
         else:
             return jsonify({"error": str(e)}), 500
@@ -427,7 +427,7 @@ def handle_api_data():
                 error = response.json()
                 raise Exception(error["message"])
             except:
-                raise Exception(error["errorMessage"])
+                raise Exception(error)
         else:
             pass
         response = response.json()
@@ -435,7 +435,7 @@ def handle_api_data():
         return response
 
     except Exception as e:
-        if "Bad 'BhRestToken' or timed-out." or 'message' in str(e):
+        if "Bad 'BhRestToken' or timed-out." or "BhRestToken" in str(e):
             raise Exception(str(e))
         else:
             return jsonify({"error": str(e)}), 500
