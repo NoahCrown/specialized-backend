@@ -11,14 +11,14 @@ from dotenv import load_dotenv
 
 class EnglishProficiency(BaseModel):
     Language: Literal["English"] = Field(default="English", description="The language is English.")
-    enProficiency: Literal['None', 'Basic', 'Conversational', 'Business', 'Fluent', 'Native'] = Field(..., description="The candidate's inferred ability to understand and use English.")
-    confidence: int = Field(..., ge=1, le=5, description="AI's confidence in inferring the data, 1 being the lowest and 5 the highest")
+    enProficiency: Literal['None', 'Basic', 'Conversational', 'Business', 'Fluent', 'Native'] = Field(..., description="This field categorizes the candidate's English proficiency: 'None' indicates no knowledge; 'Basic' covers simple phrases and expressions; 'Conversational' involves everyday communication; 'Business' pertains that the candidate can use English in professional setting; 'Fluent' means the candidate is fluent in English language, has high proficiency and can use it better than Business level; and 'Native' represents a proficiency indistinguishable from that of a native speaker or they are a native speaker themselves.")
+    confidence: int = Field(..., ge=1, le=5, description="AI's confidence in inferring the data, 1 being (Extremely low confidence), 2 being (Low confidence), 3 being (Confident), 4 being (High confidence), 5 being (Very Confident).")
     explanation: str = Field(..., description="Explanation about the inference on the language skill")
 
 class JapaneseProficiency(BaseModel):
     Language: Literal["Japanese"] = Field(default="Japanese", description="The language is Japanese.")
     jpProficiency: Literal['None', 'Basic', 'Conversational', 'Business', 'Fluent', 'Native'] = Field(..., description="The candidate's inferred ability to understand and use Japanese, 'None' being the lowest proficiency.")
-    confidence: int = Field(..., ge=1, le=5, description="AI's confidence in inferring the data, 1 being the lowest and 5 the highest")
+    confidence: int = Field(..., ge=1, le=5, description="AI's confidence in inferring the data, 1 being (Extremely low confidence), 2 being (Low confidence), 3 being (Confident), 4 being (High confidence), 5 being (Very Confident).")
     explanation: str = Field(..., description="Explanation about the inference on the language skill")
 
 class LanguageProficiency(BaseModel):
@@ -26,12 +26,12 @@ class LanguageProficiency(BaseModel):
 
 class AgeInference(BaseModel):
     Age: int = Field(..., description="Inferred age of the candidate")
-    confidence: int = Field(..., ge=1, le=5, description="AI's confidence in inferring the data, 1 being the lowest and 5 the highest")
+    confidence: int = Field(..., ge=1, le=5, description="AI's confidence in inferring the data, 1 being (Extremely low confidence), 2 being (Low confidence), 3 being (Confident), 4 being (High confidence), 5 being (Very Confident)")
     explanation: str = Field(..., description="Explanation about the inference on the age of the candidate")
 
 class LocationInference(BaseModel):
     Location: str = Field(..., description="Inferred current city and country of the candidate")
-    confidence: int = Field(..., ge=1, le=5, description="AI's confidence in inferring the location, 1 being the lowest and 5 the highest")
+    confidence: int = Field(..., ge=1, le=5, description="AI's confidence in inferring the data, 1 being (Extremely low confidence), 2 being (Low confidence), 3 being (Confident), 4 being (High confidence), 5 being (Very Confident).")
     explanation: str = Field(..., description="Explanation about the inference on the current location of the candidate")
 
 def language_skill(candidate_data, custom_prompt, parser = LanguageProficiency):
@@ -50,21 +50,33 @@ def language_skill(candidate_data, custom_prompt, parser = LanguageProficiency):
     [INST]
     {custom_prompt}
     
+    Language Proficiency is ranked like this:
+    1 (Lowest): None
+    2 (Very Low): Basic
+    3 (Low): Conversational
+    4 (Intermediate): Business
+    5 (High): Fluent
+    6 (Very High): Native
+
+    Return it as a JSON object
+
     Data: 
     {candidate_data}
 
     Format instructions:
     {format_instructions}
 
-    Answer:
+    Previous answer:
     {response}
+
+    Answer:
     [/INST]
     
 """
     query = load_data
     candidate_data= str(candidate_data)
     text_splitter = RecursiveCharacterTextSplitter(
-        chunk_size=3000,
+        chunk_size=1000,
         chunk_overlap=20,
         length_function=len,
         is_separator_regex=False,
@@ -100,7 +112,8 @@ def infer_age(candidate_data, custom_prompt, current_date, parser = AgeInference
     [INST]
     {custom_prompt}
     
-    
+    Return it as a JSON object.
+
     Data: 
     {candidate_data}
 
@@ -110,8 +123,10 @@ def infer_age(candidate_data, custom_prompt, current_date, parser = AgeInference
     Format instructions:
     {format_instructions}
 
-    Answer:
+    Previous answer:
     {response}
+
+    Answer:
     [/INST]
 
     """
@@ -153,7 +168,8 @@ def infer_location(candidate_data, custom_prompt, current_date, parser = Locatio
 
     [INST]
     {custom_prompt}
-    
+    Return it as a JSON object.
+
     Data: 
     {candidate_data}
 
@@ -163,8 +179,10 @@ def infer_location(candidate_data, custom_prompt, current_date, parser = Locatio
     Format instructions:
     {format_instructions}
 
-    Answer:
+    Previous answer:
     {response}
+
+    Answer:
     [/INST]
 
     """
