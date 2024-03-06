@@ -4,6 +4,7 @@ from langchain_community.llms.deepinfra import DeepInfra
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.prompts import PromptTemplate
 from langchain.chains import LLMChain
+from langchain_openai import ChatOpenAI
 from langchain_core.output_parsers import JsonOutputParser
 from langchain_core.pydantic_v1 import BaseModel, Field, EmailStr
 from typing import List, Optional
@@ -12,6 +13,8 @@ import fitz
 import json
 from PyPDF2 import PdfReader
 from langdetect import detect
+
+
 
 class SkillData(BaseModel):
     data: List[str] = Field(description="List of skills")
@@ -33,36 +36,18 @@ class Candidate(BaseModel):
     specialties: SkillData = Field(description="Areas of specialty or expertise for the candidate")
 
 class WorkExperience(BaseModel):
-    comments: str = Field(description="Summarized description or remarks about the work experience")
+    comments: str = Field(description="Full description or remarks about the work experience")
     companyName: str = Field(description="Name of the company associated with the work experience")
-    endDate: int = Field(description="End date of the work experience, represented as an millisecond epoch timestamp")
+    endDate: int = Field(description="End date of the work experience, represented as an millisecond epoch format")
     isLastJob: bool = Field(description="Indicates whether this position was the candidate's most recent job")
-    startDate: str = Field(description="Start date of the work experience, represented as an millisecond epoch timestamp")
+    startDate: str = Field(description="Start date of the work experience, represented as an millisecond epoch format")
     title: str = Field(description="Job title or position held during this work experience")
 
 class CandidateWorkHistory(BaseModel):
     workHistory: List[WorkExperience] = Field(description="A list detailing the work experiences or work history of the individual")
 
 def get_workhistory_from_text(lang, text):
-    if lang == 'en':
-        text_splitter = RecursiveCharacterTextSplitter(
-            chunk_size=3000,
-            chunk_overlap=20,
-            length_function=len,
-            is_separator_regex=False,
-        )
-    else:
-        text_splitter = RecursiveCharacterTextSplitter(
-            chunk_size=1000,
-            chunk_overlap=50,
-            length_function=len,
-            is_separator_regex=False,
-        )
-    texts = text_splitter.split_text(text)
-    response = ""
-    for text in texts:
-        response = str(response)
-        query = """
+    query = """
         <<SYS>>
         You are a bot who is professional at extracting candidate data from a candidate's resume.
         <<SYS>>
@@ -79,53 +64,27 @@ def get_workhistory_from_text(lang, text):
         - Job title or position held during this work experience
         
         Answer:
-        {response}
         [/INST]
         """
-        prompt = PromptTemplate(template=query, input_variables=["text","response"])
-        llm = DeepInfra(model_id = "meta-llama/Llama-2-70b-chat-hf", verbose=True)
-        llm.model_kwargs = {
-            "temperature": 0,
-            "max_tokens":10000000
-        }
-        chain = prompt | llm
-        response = chain.invoke({"text": text, "response": response})
+    prompt = PromptTemplate(template=query, input_variables=["text"])
+    llm = ChatOpenAI(model = "gpt-4-0125-preview", temperature= 0)
+    chain = LLMChain(prompt = prompt, llm = llm)
+    response = chain.run({"text": text})
     return response
 
 def run_llama_candidate(lang,query,text,parser):
-    if lang == 'en':
-        text_splitter = RecursiveCharacterTextSplitter(
-            chunk_size=3000,
-            chunk_overlap=20,
-            length_function=len,
-            is_separator_regex=False,
-        )
-    else:
-        text_splitter = RecursiveCharacterTextSplitter(
-            chunk_size=1000,
-            chunk_overlap=50,
-            length_function=len,
-            is_separator_regex=False,
-        )
-    texts = text_splitter.split_text(text)
-    response_candidate= ""
-    for text in texts:
-        response_candidate = str(response_candidate)
-        prompt = PromptTemplate(template=query, input_variables=["text", "response"], partial_variables={"format_instructions": parser.get_format_instructions()})
-        llm = DeepInfra(model_id = "meta-llama/Llama-2-70b-chat-hf", verbose=True)
-        llm.model_kwargs = {
-            "temperature": 0,
-            "max_tokens":10000000
-        }
-        llm_chain = prompt | llm | parser
-        response_candidate = llm_chain.invoke({"text": text, "response": response_candidate})
-        # response = parse_json_with_autofix(response)
-        print(response_candidate)
+    prompt = PromptTemplate(template=query, input_variables=["text"], partial_variables={"format_instructions": parser.get_format_instructions()})
+    llm = ChatOpenAI(model = "gpt-4-0125-preview", temperature= 0)
+    chain = prompt | llm | parser
+    # llm_chain = prompt | llm | parser
+    response_candidate = chain.invoke({"text": text})
+    # response = parse_json_with_autofix(response)
+    print(response_candidate)
     return response_candidate
 
 def extract_cv(pdf_file):
     load_dotenv()
-    os.environ["DEEPINFRA_API_TOKEN"] = os.getenv('DEEPINFRA_API_TOKEN')
+    os.environ["OPENAI_API_KEY"] = os.getenv('OPENAI_API_KEY')
     # pdf_reader = PdfReader(pdf_file)
     # text = ""
 
@@ -154,14 +113,13 @@ def extract_cv(pdf_file):
         Format instructions:
         {format_instructions}
         Answer:
-        {response}
         [/INST]
     """
 
     query = init_query_translation + candidate_query
     candidate_parser = JsonOutputParser(pydantic_object=Candidate)
 
-    summarized_text = get_workhistory_from_text(lang,text)
+    # summarized_text = get_workhistory_from_text(lang,text)
 
     workhistory_query = """
         <<SYS>>
@@ -176,7 +134,6 @@ def extract_cv(pdf_file):
         Format instructions:
         {format_instructions}
         Answer:
-        {response}
         [/INST]
 
     """
@@ -186,7 +143,7 @@ def extract_cv(pdf_file):
 
     with ThreadPoolExecutor(max_workers=2) as executor:
         future_task1 = executor.submit(run_llama_candidate, lang, query, text, candidate_parser)
-        future_task2 = executor.submit(run_llama_candidate, lang, workhistory_query, summarized_text, workhistory_parser)
+        future_task2 = executor.submit(run_llama_candidate, lang, workhistory_query, text, workhistory_parser)
         
         result_task1 = future_task1.result()
         result_task2 = future_task2.result()
