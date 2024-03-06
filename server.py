@@ -10,7 +10,7 @@ from helpers.search import search_for_id, search_for_candidate, search_for_name
 from helpers.get_mockdata import extract_and_store, extract_and_store_work_history
 from helpers.get_cv_data_llama import extract_cv
 from helpers.sanitize_b64 import sanitize_base64, get_file_type_from_base64
-from helpers.convert2pdf_spire import convert_to_pdf
+from helpers.convert2pdf_spire import convert_to_pdf, allowed_file
 from helpers.bullhorn_access import BullhornAuthHelper, on_401_error
 from prompts.data_prompt import AGE_BASE_PROMPT, LANGUAGE_SKILL_BASE_PROMPT, LOCATION_BASE_PROMPT
 from prompts.prompt_database import read_item, SavePrompts, LoadPrompts, DeletePrompts
@@ -446,16 +446,33 @@ def upload_file():
         return jsonify({'error': 'No file part'}), 400
 
     file = request.files['pdfFile']
-    temp_path = 'temp.pdf'
-    base_path = os.path.abspath(os.path.dirname(__file__))  # Get the directory in which the script is located
-    file_path = os.path.join(base_path, temp_path)
-    file.save(file_path)
-    with open(file_path, 'rb') as pdf_file:
-        pdf_data = pdf_file.read()
-    pdf_data = base64.b64encode(pdf_data)
-    pdf_data = pdf_data.decode("utf-8")
+    if file.filename == '':
+        return jsonify({'error': 'No selected file'}), 400
+    if not allowed_file(file.filename):
+        return jsonify({'error': 'File type not supported'}), 400
+
+    file_type = file.filename.rsplit('.', 1)[1].lower()
+    file_bytes = file.read()
+
+    with tempfile.NamedTemporaryFile(delete=False, suffix=f'.{file_type}') as temp_file:
+        temp_file_path = temp_file.name
+        temp_file.write(file_bytes)
+
     try:
-        extracted_data = extract_cv(file_path)
+        # Convert to PDF if it's a DOCX or DOC
+        if file_type in ['docx', 'doc']:
+            pdf_file_path = convert_to_pdf(temp_file_path)
+            os.remove(temp_file_path)  # Remove the original temp file after conversion
+        else:
+            pdf_file_path = temp_file_path
+
+        # Here, pdf_file_path is the path to the PDF file, whether originally uploaded as PDF
+        # or converted from DOCX/DOC
+        with open(pdf_file_path, 'rb') as pdf_file:
+            pdf_data = pdf_file.read()
+        pdf_data = base64.b64encode(pdf_data).decode("utf-8")
+
+        extracted_data = extract_cv(pdf_file_path)
         session['pdfFile'] = extracted_data
 
         cache_key = 'extracted_cv'
@@ -464,9 +481,10 @@ def upload_file():
         cache_key = 'uploaded_pdf'
         cache.set(cache_key, pdf_data, timeout=60*60)
     finally:
-        os.remove(file_path)
+        if os.path.exists(pdf_file_path):
+            os.remove(pdf_file_path)
 
-    return extracted_data
+    return jsonify(extracted_data)
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=10000)
