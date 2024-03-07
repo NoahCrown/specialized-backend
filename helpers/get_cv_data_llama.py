@@ -107,7 +107,7 @@ def extract_cv(pdf_file):
         filtered_text += filtered_page_text + "\n"  # Append the filtered text of the current page with a newline
     doc.close()
 
-    lang = detect(text)
+    lang = detect(filtered_text)
 
     init_query_translation = '' if lang == 'en' else f'Suppose you are a {lang} to English translator and the document is in {lang} texts, can you translate it so that you can extract the data and read it without giving me an output of translated texts and then'
 
@@ -153,8 +153,8 @@ def extract_cv(pdf_file):
     workhistory_parser = JsonOutputParser(pydantic_object=CandidateWorkHistory)
 
     with ThreadPoolExecutor(max_workers=2) as executor:
-        future_task1 = executor.submit(run_llama_candidate, lang, query, text, candidate_parser)
-        future_task2 = executor.submit(run_llama_candidate, lang, workhistory_query, text, workhistory_parser)
+        future_task1 = executor.submit(run_llama_candidate, lang, query, filtered_text, candidate_parser)
+        future_task2 = executor.submit(run_llama_candidate, lang, workhistory_query, filtered_text, workhistory_parser)
         
         result_task1 = future_task1.result()
         result_task2 = future_task2.result()
