@@ -21,9 +21,9 @@ class SkillData(BaseModel):
     total: int = Field(description="Total number of skills")
 
 class Candidate(BaseModel):
-    certifications: str = Field(description="Certifications held by the candidate")
+    certifications: List[str] = Field(description="Certifications held by the candidate")
     comments: Optional[str] = Field(description="General comments or notes about the candidate")
-    dateOfBirth: Optional[str] = Field(description="Candidate's date of birth")
+    dateOfBirth: Optional[int] = Field(description="Candidate's date of birth, represented as an millisecond epoch format")
     educationDegree: str = Field(description="Highest educational degree obtained by the candidate")
     email: str = Field(description="Candidate's email address")
     ethnicity: Optional[str] = Field(description="Candidate's self-reported ethnicity (optional)")
@@ -40,7 +40,7 @@ class WorkExperience(BaseModel):
     companyName: str = Field(description="Name of the company associated with the work experience")
     endDate: int = Field(description="End date of the work experience, represented as an millisecond epoch format")
     isLastJob: bool = Field(description="Indicates whether this position was the candidate's most recent job")
-    startDate: str = Field(description="Start date of the work experience, represented as an millisecond epoch format")
+    startDate: int = Field(description="Start date of the work experience, represented as an millisecond epoch format")
     title: str = Field(description="Job title or position held during this work experience")
 
 class CandidateWorkHistory(BaseModel):
