@@ -22,3 +22,6 @@ def convert_to_pdf(input_file_path):
     document.Close()
 
     return pdf_file_path
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in {'pdf', 'docx', 'doc'}

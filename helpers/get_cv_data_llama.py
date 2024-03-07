@@ -91,9 +91,20 @@ def extract_cv(pdf_file):
     # for page in pdf_reader.pages:
     #     text += page.extract_text()
     doc = fitz.open(pdf_file)
-    text = ""
-    for page in doc:
-        text += page.get_text()
+    filtered_text = ""  # Initialize an empty string to store filtered text
+    filter_sentence = "Evaluation Warning: The document was created with Spire.Doc for Python."
+    # Iterate through each page of the PDF
+    for page_num in range(len(doc)):
+        page = doc.load_page(page_num)  # Load the current page
+        text = page.get_text()  # Extract text from the current page
+        
+        # Split the text into sentences and filter out the specific sentence
+        sentences = text.split('\n')  # Assuming each sentence is on a new line
+        filtered_sentences = [sentence for sentence in sentences if filter_sentence not in sentence]
+        
+        # Join the filtered sentences back into a block of text
+        filtered_page_text = '\n'.join(filtered_sentences)
+        filtered_text += filtered_page_text + "\n"  # Append the filtered text of the current page with a newline
     doc.close()
 
     lang = detect(text)
