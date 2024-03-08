@@ -1,6 +1,7 @@
 import os
 import base64
-from multiprocessing import Pool
+import math
+from multiprocessing import Pool, cpu_count
 from dotenv import load_dotenv
 from cachelib import SimpleCache
 from flask import Flask, request, abort, jsonify, session
@@ -404,9 +405,12 @@ def get_bulk_custom_prompt():
 
         results_list = []
 
+        num_processes = min(10, cpu_count())
+        chunk_size = max(10, math.ceil(len(params_list) / num_processes))
+
         # Process in batches of 10
-        with Pool(processes=10) as pool:
-            for params_batch in chunked_iterable(params_list, 10):
+        with Pool(processes=num_processes) as pool:
+            for params_batch in chunked_iterable(params_list, chunk_size):
                 batch_results = pool.map(run_custom_prompt, params_batch)
                 for cid, status, result in batch_results:
                     candidate_name = candidate_id_to_name[cid]
