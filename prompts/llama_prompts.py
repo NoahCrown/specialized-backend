@@ -11,13 +11,13 @@ from dotenv import load_dotenv
 
 class EnglishProficiency(BaseModel):
     Language: Literal["English"] = Field(default="English", description="The language is English.")
-    enProficiency: Literal['None', 'Basic', 'Conversational', 'Business', 'Fluent', 'Native'] = Field(..., description="This field categorizes the candidate's English proficiency: 'None' indicates no knowledge; 'Basic' covers simple phrases and expressions; 'Conversational' involves everyday communication; 'Business' pertains that the candidate can use English in professional setting; 'Fluent' means the candidate is fluent in English language, has high proficiency and can use it better than Business level; and 'Native' represents a proficiency indistinguishable from that of a native speaker or they are a native speaker themselves.")
+    enProficiency: Literal['None', 'Basic', 'Conversational', 'Business', 'Fluent', 'Native'] = Field(..., description="This field categorizes the candidate's English proficiency: 'None' indicates no knowledge; 'Basic' covers simple phrases and expressions; 'Conversational' involves everyday communication; 'Business' pertains that the candidate can use English in professional setting; 'Fluent' means the candidate is fluent in English language, has high proficiency and can use it better than Business level; and 'Native' represents a proficiency indistinguishable from that of a native speaker or they are born and raised in an English-speaking country.")
     confidence: int = Field(..., ge=1, le=5, description="AI's confidence in inferring the data, 1 being (Extremely low confidence), 2 being (Low confidence), 3 being (Confident), 4 being (High confidence), 5 being (Very Confident).")
     explanation: str = Field(..., description="Explanation about the inference on the language skill")
 
 class JapaneseProficiency(BaseModel):
     Language: Literal["Japanese"] = Field(default="Japanese", description="The language is Japanese.")
-    jpProficiency: Literal['None', 'Basic', 'Conversational', 'Business', 'Fluent', 'Native'] = Field(..., description="The candidate's inferred ability to understand and use Japanese, 'None' being the lowest proficiency.")
+    jpProficiency: Literal['None', 'Basic', 'Conversational', 'Business', 'Fluent', 'Native'] = Field(..., description="This field categorizes the candidate's Japanese proficiency: 'None' indicates no knowledge; 'Basic' covers simple phrases and expressions; 'Conversational' involves everyday communication; 'Business' pertains that the candidate can use Japanese in professional setting; 'Fluent' means the candidate is fluent in Japanese language, has high proficiency and can use it better than Business level; and 'Native' represents a proficiency indistinguishable from that of a native speaker or they are born and raised in Japan.")
     confidence: int = Field(..., ge=1, le=5, description="AI's confidence in inferring the data, 1 being (Extremely low confidence), 2 being (Low confidence), 3 being (Confident), 4 being (High confidence), 5 being (Very Confident).")
     explanation: str = Field(..., description="Explanation about the inference on the language skill")
 

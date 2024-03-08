@@ -1,9 +1,11 @@
 import os
 import base64
+from multiprocessing import Pool
 from dotenv import load_dotenv
 from cachelib import SimpleCache
 from flask import Flask, request, abort, jsonify, session
 from flask_session import Session
+from helpers.bulkinfer import run_custom_prompt,chunked_iterable
 from helpers.get_data import extract_data
 from helpers.summarize import summarize_data
 from helpers.search import search_for_id, search_for_candidate, search_for_name
@@ -367,7 +369,61 @@ def get_custom_prompt():
             raise Exception(str(e))
         else:
             return jsonify({"error": str(e)}), 500
+
+@app.route('/api/bulk_prompt_input', methods=['POST'])
+@on_401_error(lambda: bullhorn_auth_helper.authenticate(USERNAME, PASSWORD))
+def get_bulk_custom_prompt():
+    try:
+        received_data = request.json
+        custom_prompt = received_data["response"]
+        infer_data = received_data["dataToInfer"]
+        access_token = bullhorn_auth_helper.get_rest_token()
+
+        if infer_data == "age":
+            candidates = f"search/Candidate?BhRestToken={access_token}&query=*:* -(dateOfBirth:[* TO *]) AND isDeleted:false&fields=id,name&sort=-dateAdded&count=100&where=isDeleted=false"
+        elif infer_data == "languageSkills":
+            candidates = f"search/Candidate?BhRestToken={access_token}&query=*:* -(specialties.id:(2000044 OR 2000008 OR 2000009 OR 2000025 OR 2000010 OR 2000011 OR 2000042) OR (2000043 OR 2000015 OR 2000016 OR 2000026 OR 2000017 OR 2000018 OR 2000041)) AND isDeleted:false&fields=id,name&sort=-dateAdded&count=100&where=isDeleted=false"
+        elif infer_data == "location":
+            candidates = f"search/Candidate?BhRestToken={access_token}&query=*:* (address.country.id:2378) AND isDeleted:false&fields=id,name&sort=-dateAdded&count=100&where=isDeleted=false"
         
+        candidate_data = requests.get(SPECIALIZED_URL + candidates)
+        if candidate_data.status_code == 401:
+            try:
+                error = candidate_data.json()
+                raise Exception(error["message"])
+            except:
+                raise Exception(error)
+
+        candidate_data = candidate_data.json()
+        candidate_items = candidate_data['data']
+
+        candidate_id_to_name = {item['id']: item['name'] for item in candidate_items}
+
+        # Prepare to store the results
+        params_list = [(cid, custom_prompt, infer_data, SPECIALIZED_URL) for cid in candidate_id_to_name.keys()]
+
+        results_list = []
+
+        # Process in batches of 10
+        with Pool(processes=10) as pool:
+            for params_batch in chunked_iterable(params_list, 10):
+                batch_results = pool.map(run_custom_prompt, params_batch)
+                for cid, status, result in batch_results:
+                    candidate_name = candidate_id_to_name[cid]
+                    results_list.append({
+                        'id': cid,  # Include candidate ID if needed
+                        'name': candidate_name,
+                        'status': status,
+                        **result  # Merge result dict which could contain 'data' or 'error'
+                    })
+
+        return jsonify(results_list)
+    except Exception as e:
+        if "Bad 'BhRestToken' or timed-out." or "BhRestToken" in str(e):
+            raise Exception(str(e))
+        else:
+            return jsonify({"error": str(e)}), 500
+
 @app.route('/api/filter_data', methods=['POST'])
 @on_401_error(lambda: bullhorn_auth_helper.authenticate(USERNAME, PASSWORD))
 def filter_data():
