@@ -1,11 +1,14 @@
 import os
 import base64
 import math
-from multiprocessing import Pool, cpu_count
+import time
+import shortuuid
+from threading import Lock
+from flask_socketio import SocketIO, emit
+from multiprocessing import Pool, cpu_count, Process, Queue, Event, Manager
 from dotenv import load_dotenv
 from cachelib import SimpleCache
-from flask import Flask, request, abort, jsonify, session
-from flask_session import Session
+from flask import Flask, request, abort, jsonify
 from helpers.bulkinfer import run_custom_prompt,chunked_iterable
 from helpers.get_data import extract_data
 from helpers.summarize import summarize_data
@@ -23,12 +26,13 @@ import tempfile
 import json
 
 app = Flask(__name__)
+socketio = SocketIO(app, cors_allowed_origins="*")
+task_queue = Queue()
 CORS(app)
 
-app.config['SESSION_TYPE'] = 'filesystem'
-Session(app)
-
 cache = SimpleCache()
+work_available = Event()
+dict_lock = Lock()
 
 load_dotenv()
 CLIENT_ID = os.getenv('SPECIALIZED_CLIENT_ID')
@@ -428,6 +432,101 @@ def get_bulk_custom_prompt():
         else:
             return jsonify({"error": str(e)}), 500
 
+def worker(task_queue, shared_dict, work_available):
+    while True:
+        # Wait for the signal that work is available
+        work_available.wait()
+
+        # Process all available tasks
+        while not task_queue.empty():
+            job_id, candidate_id, candidate_name, params = task_queue.get()
+            try:
+                result = run_custom_prompt(params)
+                candidate_id, status, response = result
+                with dict_lock:
+                    shared_dict[job_id] = {
+                        'id': candidate_id,
+                        'name': candidate_name,
+                        'status': status,
+                        **response  # Merge result dict
+                    }
+            except Exception as e:
+                with dict_lock:
+                    shared_dict[job_id] = {
+                        'id': candidate_id,
+                        'name': candidate_name,
+                        'status': 'failed',
+                        'error': str(e)
+                    }
+
+        # Reset the event to go back to sleep until new work arrives
+        work_available.clear()
+
+@app.route('/api/enqueue', methods=['POST'])
+@on_401_error(lambda: bullhorn_auth_helper.authenticate(USERNAME, PASSWORD))
+def enqueue_task():
+    received_data = request.json
+    custom_prompt = received_data["response"]
+    infer_data = received_data["dataToInfer"]
+    candidate_id = received_data["candidateId"]
+    access_token = bullhorn_auth_helper.get_rest_token()
+    candidate = f"search/Candidate?BhRestToken={access_token}&query={candidate_id}&fields=name&sort=-dateAdded&where=isDeleted=false"
+    candidate_data = requests.get(SPECIALIZED_URL+candidate)
+    if candidate_data.status_code == 401:
+        try:
+            error = candidate_data.json()
+            raise Exception(error["message"])
+        except:
+            raise Exception(error)
+    else:
+            pass
+    candidate_data = candidate_data.json()
+    candidate_name = candidate_data['data'][0]['name']
+
+    # Create a unique job ID
+    job_id = shortuuid.ShortUUID().random(length=10)
+    params = (candidate_id, custom_prompt, infer_data, SPECIALIZED_URL)
+
+    # Enqueue the job
+    task_queue.put((job_id, candidate_id, candidate_name, params))
+    with dict_lock:
+        shared_dict[job_id]= {
+                            'id': candidate_id,
+                            'name': candidate_name,
+                            'status': 'pending',
+                            'result': None
+                        }
+    work_available.set()
+    return jsonify({"job_id": job_id}), 202
+
+@socketio.on('connect')
+def test_connect():
+    emit('my_response', {'message': 'Connected'})
+
+@socketio.on('check_job')
+def check_job(data):
+    job_id = data.get('job_id')  # Safely retrieve job_id using .get() method
+
+    with dict_lock:  # Ensure thread-safe access to shared_dict
+        if job_id is not None and job_id in shared_dict:
+            job_details = shared_dict[job_id]
+            id = job_details['id']
+            name = job_details['name']
+            status = job_details['status']
+            predefined_keys = ['id', 'name', 'status']
+            response = {key: value for key, value in job_details.items() if key not in predefined_keys}
+
+            if status == 'success':
+                emit('job_complete', {'id': id, 'name': name, 'status': status, 'result': response})
+                del shared_dict[job_id]  # Clear the job from the results dictionary
+            elif status == 'failed':
+                emit('job_failed', {'id': id, 'name': name, 'status': status, 'result': response})
+                del shared_dict[job_id]  # Clear failed jobs as well
+            else:
+                emit('job_pending', {'id': id, 'name': name, 'status': status, 'result': response})
+        else:
+            emit('job_failed', {'message': 'Invalid Job ID'})
+
 @app.route('/api/filter_data', methods=['POST'])
 @on_401_error(lambda: bullhorn_auth_helper.authenticate(USERNAME, PASSWORD))
 def filter_data():
@@ -533,7 +632,6 @@ def upload_file():
         pdf_data = base64.b64encode(pdf_data).decode("utf-8")
 
         extracted_data = extract_cv(pdf_file_path)
-        session['pdfFile'] = extracted_data
 
         cache_key = 'extracted_cv'
         cache.set(cache_key, extracted_data, timeout=60*60)
@@ -547,4 +645,14 @@ def upload_file():
     return jsonify(extracted_data)
 
 if __name__ == '__main__':
-    app.run()
+    manager = Manager()
+    shared_dict = manager.dict()
+    # Pass the event object to the worker process
+    p = Process(target=worker, args=(task_queue, shared_dict, work_available))
+    p.start()
+
+    # Start the Flask app and the socket IO server
+    socketio.run(app, debug=True, use_reloader= False)
+
+    # Clean up
+    p.join()
