@@ -508,7 +508,13 @@ def check_job(data):
     job_id = data.get('job_id')  # Safely retrieve job_id using .get() method
 
     with dict_lock:  # Ensure thread-safe access to shared_dict
-        if job_id is not None and job_id in shared_dict:
+        # First, check if the shared_dict is empty, implying no jobs are in the queue
+        if not shared_dict:
+            emit('job_complete', {'message': 'Job queue is empty'})
+            return
+
+        # Now proceed to check if the job_id is valid and in shared_dict
+        if job_id and job_id in shared_dict:
             job_details = shared_dict[job_id]
             id = job_details['id']
             name = job_details['name']
@@ -522,10 +528,10 @@ def check_job(data):
             elif status == 'failed':
                 emit('job_failed', {'id': id, 'name': name, 'status': status, 'result': response})
                 del shared_dict[job_id]  # Clear failed jobs as well
-            else:
+            else:  # Job is still pending
                 emit('job_pending', {'id': id, 'name': name, 'status': status, 'result': response})
         else:
-            emit('job_failed', {'message': 'Invalid Job ID'})
+            emit('job_failed', {'message': 'Invalid Job ID'})  # This message is for truly invalid IDs
 
 @app.route('/api/filter_data', methods=['POST'])
 @on_401_error(lambda: bullhorn_auth_helper.authenticate(USERNAME, PASSWORD))
