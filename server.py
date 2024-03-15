@@ -11,6 +11,7 @@ from cachelib import SimpleCache
 from flask import Flask, request, abort, jsonify
 from helpers.bulkinfer import run_custom_prompt,chunked_iterable
 from helpers.get_data import extract_data
+from helpers.app_logger import LoggerFactory
 from helpers.summarize import summarize_data
 from helpers.search import search_for_id, search_for_candidate, search_for_name
 from helpers.get_mockdata import extract_and_store, extract_and_store_work_history
@@ -44,6 +45,15 @@ SPECIALIZED_URL = os.getenv('SPECIALIZED_REST_URL')
 # Initialize BullhornAuthHelper
 bullhorn_auth_helper = BullhornAuthHelper(CLIENT_ID, CLIENT_SECRET)
 bullhorn_auth_helper.authenticate(USERNAME, PASSWORD)
+
+# Initialize Logger
+app_name = os.getenv('APP_NAME')
+syslog_address = os.getenv('SYSLOG_ADDRESS')
+syslog_port = os.getenv('SYSLOG_PORT')
+syslog_port = int(syslog_port)
+
+logger_factory = LoggerFactory(app_name, syslog_address, syslog_port)
+logger = logger_factory.get_logger()
 
 @app.route('/api/get_candidate', methods=['POST'])
 @on_401_error(lambda: bullhorn_auth_helper.authenticate(USERNAME, PASSWORD))
@@ -80,12 +90,16 @@ def get_candidate():
         candidate_data = candidate_data['data'][0]
 
         candidate_data = [candidate_data,candidate_workhistory]
+        logger.info(f"Candidate data and work history of candidateID: {str(candidate_id)} fetched from Bullhorn")
         return candidate_data
 
     except Exception as e:
         if "Bad 'BhRestToken' or timed-out." or "BhRestToken" in str(e):
+            logger.warning("Bad 'BhRestToken' or timed-out, attempting to reconnect to Bullhorn")
             raise Exception(str(e))
         else:
+            logger.error("Encountered an error while getting candidate:")
+            logger.error(f"{str(e)}")
             return jsonify({"error": str(e)}), 500
     
 @app.route('/api/search_name', methods = ['POST'])
@@ -107,11 +121,15 @@ def search_candidate():
             pass
         candidate_data = candidate_data.json()
         candidate_data = candidate_data['data']
+        logger.info(f"Search for candidate name {candidate_name} successful")
         return candidate_data
     except Exception as e:
         if "Bad 'BhRestToken' or timed-out." or "BhRestToken" in str(e):
+            logger.warning("Bad 'BhRestToken' or timed-out, attempting to reconnect to Bullhorn")
             raise Exception(str(e))
         else:
+            logger.error("Encountered an error while searching candidate:")
+            logger.error(f"{str(e)}")
             return jsonify({"error": str(e)}), 500
 
 @app.route('/api/get_pdf', methods = ['POST'])
@@ -135,6 +153,7 @@ def get_candidate_pdf():
                     raise Exception(error)
             
             file_attachments = response.json().get('data', [])
+            logger.info(f"Getting PDF/s of candidateID{str(candidate_id)} successful.")
 
             for attachment in file_attachments:
                 file_id = attachment['id']
@@ -187,12 +206,16 @@ def get_candidate_pdf():
             file_type = "application/pdf"
             
             files_data["files"].append({"type": file_type, "candidateFile": candidate_file_base64, "fileName":"uploadedPDF"})
+            logger.info(f"Getting PDF/s of uploaded CV successful.")
 
         return jsonify(files_data)
     except Exception as e:
         if "Bad 'BhRestToken' or timed-out." or "BhRestToken" in str(e):
+            logger.warning("Bad 'BhRestToken' or timed-out, attempting to reconnect to Bullhorn")
             raise Exception(str(e))
         else:
+            logger.error("Encountered an error while getting candidate PDF:")
+            logger.error(f"{str(e)}")
             return jsonify({"error": str(e)}), 500
     
 @app.route('/api/extract_bullhorn', methods = ['POST'])
@@ -227,6 +250,7 @@ def extract_bullhorn_pdf():
             pass
         candidate_file = candidate_file.json()
         candidate_file = candidate_file['File']['fileContent']
+        logger.info(f"Getting PDF/s of candidateID{str(candidate_id)} successful.")
         candidate_file = sanitize_base64(candidate_file)
         file_type = get_file_type_from_base64(candidate_file)  # Assuming it returns "PDF", "DOC", or "DOCX"
                 
@@ -248,6 +272,8 @@ def extract_bullhorn_pdf():
             extracted_data = extract_cv(pdf_file_path)  # Implement this function
             cache_key = 'extracted_cv'
             cache.set(cache_key, extracted_data, timeout=60 * 60)
+
+            logger.info(f"Extracting data from PDF of candidateID{str(candidate_id)} successful.")
         finally:
             # Cleanup temporary file
             os.remove(temp_file_path)
@@ -256,8 +282,11 @@ def extract_bullhorn_pdf():
         return extracted_data
     except Exception as e:
         if "Bad 'BhRestToken' or timed-out." or "BhRestToken" in str(e):
+            logger.warning("Bad 'BhRestToken' or timed-out, attempting to reconnect to Bullhorn")
             raise Exception(str(e))
         else:
+            logger.error("Encountered an error while extracting PDF of a candidate:")
+            logger.error(f"{str(e)}")
             return jsonify({"error": str(e)}), 500
 
 @app.route('/api/get_prompt/<int:version_number>', methods = ['POST'])
@@ -277,6 +306,8 @@ def send_base_prompt(version_number):
         
         return jsonify(response)
     except Exception as e:
+        logger.error("Encountered an error while getting prompt:")
+        logger.error(f"{str(e)}")
         return jsonify({"error": str(e)}), 500
 
 @app.route('/api/load_prompt', methods = ['POST'])
@@ -289,6 +320,8 @@ def get_prompt_count():
 
         return jsonify(response)
     except Exception as e:
+        logger.error("Encountered an error while loading prompt:")
+        logger.error(f"{str(e)}")
         return jsonify({"error": str(e)}), 500
     
 @app.route('/api/save_prompt', methods = ['POST'])
@@ -302,6 +335,8 @@ def save_prompt_on_db():
 
         return jsonify({"response":response})
     except Exception as e:
+        logger.error("Encountered an error while saving prompt:")
+        logger.error(f"{str(e)}")
         return jsonify({"error": str(e)}), 500
     
 @app.route('/api/delete_prompt/<int:version_number>', methods = ['POST'])
@@ -314,6 +349,8 @@ def delete_prompt_on_db(version_number):
 
         return jsonify({"response":response})
     except Exception as e:
+        logger.error("Encountered an error while deleting prompt:")
+        logger.error(f"{str(e)}")
         return jsonify({"error": str(e)}), 500
 
 @app.route('/api/prompt_input', methods=['POST'])
@@ -357,6 +394,7 @@ def get_custom_prompt():
 
             elif infer_data == "age" and candidate_data["dateOfBirth"] is not None:
                 response = summarize_data(candidate_data, custom_prompt, infer_data)
+            logger.info(f"Inferring {infer_data} of candidateID {str(candidate_id)} successful")
         else:
             cache_key = 'extracted_cv'
             candidate_data = cache.get(cache_key)
@@ -368,11 +406,15 @@ def get_custom_prompt():
                 response = summarize_data(candidate_data, custom_prompt, infer_data)
             elif infer_data == "location":
                 response = summarize_data(candidate_data, custom_prompt, infer_data)
+            logger.info(f"Inferring {infer_data} of uploaded CV successful")
         return response
     except Exception as e:
         if "Bad 'BhRestToken' or timed-out." or "BhRestToken" in str(e):
+            logger.warning("Bad 'BhRestToken' or timed-out, attempting to reconnect to Bullhorn")
             raise Exception(str(e))
         else:
+            logger.error("Encountered an error while inferring data of candidate:")
+            logger.error(f"{str(e)}")
             return jsonify({"error": str(e)}), 500
 
 @app.route('/api/bulk_prompt_input', methods=['POST'])
@@ -385,11 +427,11 @@ def get_bulk_custom_prompt():
         access_token = bullhorn_auth_helper.get_rest_token()
 
         if infer_data == "age":
-            candidates = f"search/Candidate?BhRestToken={access_token}&query=*:* -(dateOfBirth:[* TO *]) AND isDeleted:false&fields=id,name&sort=-dateAdded&count=10&where=isDeleted=false"
+            candidates = f"search/Candidate?BhRestToken={access_token}&query=*:* -(dateOfBirth:[* TO *]) AND isDeleted:false&fields=id,name&sort=-dateAdded&count=100&where=isDeleted=false"
         elif infer_data == "languageSkills":
-            candidates = f"search/Candidate?BhRestToken={access_token}&query=*:* -(specialties.id:(2000044 OR 2000008 OR 2000009 OR 2000025 OR 2000010 OR 2000011 OR 2000042) OR (2000043 OR 2000015 OR 2000016 OR 2000026 OR 2000017 OR 2000018 OR 2000041)) AND isDeleted:false&fields=id,name&sort=-dateAdded&count=10&where=isDeleted=false"
+            candidates = f"search/Candidate?BhRestToken={access_token}&query=*:* -(specialties.id:(2000044 OR 2000008 OR 2000009 OR 2000025 OR 2000010 OR 2000011 OR 2000042) OR (2000043 OR 2000015 OR 2000016 OR 2000026 OR 2000017 OR 2000018 OR 2000041)) AND isDeleted:false&fields=id,name&sort=-dateAdded&count=100&where=isDeleted=false"
         elif infer_data == "location":
-            candidates = f"search/Candidate?BhRestToken={access_token}&query=*:* (address.country.id:2378) AND isDeleted:false&fields=id,name&sort=-dateAdded&count=10&where=isDeleted=false"
+            candidates = f"search/Candidate?BhRestToken={access_token}&query=*:* (address.country.id:2378) AND isDeleted:false&fields=id,name&sort=-dateAdded&count=100&where=isDeleted=false"
         
         candidate_data = requests.get(SPECIALIZED_URL + candidates)
         if candidate_data.status_code == 401:
@@ -402,6 +444,7 @@ def get_bulk_custom_prompt():
         candidate_data = candidate_data.json()
         candidate_items = candidate_data['data']
 
+        logger.info(f"Attempting to infer {infer_data} of 100 candidates")
         candidate_id_to_name = {item['id']: item['name'] for item in candidate_items}
 
         # Prepare to store the results
@@ -424,12 +467,16 @@ def get_bulk_custom_prompt():
                         'status': status,
                         **result  # Merge result dict which could contain 'data' or 'error'
                     })
-
+                    logger.info(f"Inferring {infer_data} of candidateID {cid} {status}")
+        logger.info("inference for 100 candidates successful")
         return jsonify(results_list)
     except Exception as e:
         if "Bad 'BhRestToken' or timed-out." or "BhRestToken" in str(e):
+            logger.warning("Bad 'BhRestToken' or timed-out, attempting to reconnect to Bullhorn")
             raise Exception(str(e))
         else:
+            logger.error("Encountered an error while inferring 100 candidates:")
+            logger.error(f"{str(e)}")
             return jsonify({"error": str(e)}), 500
 
 def worker(task_queue, shared_dict, work_available):
@@ -450,6 +497,7 @@ def worker(task_queue, shared_dict, work_available):
                         'status': status,
                         **response  # Merge result dict
                     }
+                logger.info(f"Queued inference for candidateID:{str(candidate_id)} successful")
             except Exception as e:
                 with dict_lock:
                     shared_dict[job_id] = {
@@ -458,6 +506,7 @@ def worker(task_queue, shared_dict, work_available):
                         'status': 'failed',
                         'error': str(e)
                     }
+                logger.warning(f"Queued inference for candidateID:{str(candidate_id)} failed")
 
         # Reset the event to go back to sleep until new work arrives
         work_available.clear()
@@ -465,39 +514,49 @@ def worker(task_queue, shared_dict, work_available):
 @app.route('/api/enqueue', methods=['POST'])
 @on_401_error(lambda: bullhorn_auth_helper.authenticate(USERNAME, PASSWORD))
 def enqueue_task():
-    received_data = request.json
-    custom_prompt = received_data["response"]
-    infer_data = received_data["dataToInfer"]
-    candidate_id = received_data["candidateId"]
-    access_token = bullhorn_auth_helper.get_rest_token()
-    candidate = f"search/Candidate?BhRestToken={access_token}&query={candidate_id}&fields=name&sort=-dateAdded&where=isDeleted=false"
-    candidate_data = requests.get(SPECIALIZED_URL+candidate)
-    if candidate_data.status_code == 401:
-        try:
-            error = candidate_data.json()
-            raise Exception(error["message"])
-        except:
-            raise Exception(error)
-    else:
-            pass
-    candidate_data = candidate_data.json()
-    candidate_name = candidate_data['data'][0]['name']
+    try:
+        received_data = request.json
+        custom_prompt = received_data["response"]
+        infer_data = received_data["dataToInfer"]
+        candidate_id = received_data["candidateId"]
+        access_token = bullhorn_auth_helper.get_rest_token()
+        candidate = f"search/Candidate?BhRestToken={access_token}&query={candidate_id}&fields=name&sort=-dateAdded&where=isDeleted=false"
+        candidate_data = requests.get(SPECIALIZED_URL+candidate)
+        if candidate_data.status_code == 401:
+            try:
+                error = candidate_data.json()
+                raise Exception(error["message"])
+            except:
+                raise Exception(error)
+        else:
+                pass
+        candidate_data = candidate_data.json()
+        candidate_name = candidate_data['data'][0]['name']
 
-    # Create a unique job ID
-    job_id = shortuuid.ShortUUID().random(length=10)
-    params = (candidate_id, custom_prompt, infer_data, SPECIALIZED_URL)
+        # Create a unique job ID
+        job_id = shortuuid.ShortUUID().random(length=10)
+        params = (candidate_id, custom_prompt, infer_data, SPECIALIZED_URL)
 
-    # Enqueue the job
-    task_queue.put((job_id, candidate_id, candidate_name, params))
-    with dict_lock:
-        shared_dict[job_id]= {
-                            'id': candidate_id,
-                            'name': candidate_name,
-                            'status': 'pending',
-                            'result': None
-                        }
-    work_available.set()
-    return jsonify({"job_id": job_id}), 202
+        # Enqueue the job
+        task_queue.put((job_id, candidate_id, candidate_name, params))
+        with dict_lock:
+            shared_dict[job_id]= {
+                                'id': candidate_id,
+                                'name': candidate_name,
+                                'status': 'pending',
+                                'result': None
+                            }
+        logger.info(f"Inferring {infer_data} for candidateID:{str(candidate_id)} queued")
+        work_available.set()
+        return jsonify({"job_id": job_id}), 202
+    except Exception as e:
+        if "Bad 'BhRestToken' or timed-out." or "BhRestToken" in str(e):
+            logger.warning("Bad 'BhRestToken' or timed-out, attempting to reconnect to Bullhorn")
+            raise Exception(str(e))
+        else:
+            logger.error("Encountered an error while queueing a request:")
+            logger.error(f"{str(e)}")
+            return jsonify({"error": str(e)}), 500
 
 @socketio.on('connect')
 def test_connect():
@@ -574,8 +633,11 @@ def filter_data():
 
     except Exception as e:
         if "Bad 'BhRestToken' or timed-out." or "BhRestToken" in str(e):
+            logger.warning("Bad 'BhRestToken' or timed-out, attempting to reconnect to Bullhorn")
             raise Exception(str(e))
         else:
+            logger.error("Encountered an error while filtering search:")
+            logger.error(f"{str(e)}")
             return jsonify({"error": str(e)}), 500
         
 
@@ -601,13 +663,17 @@ def handle_api_data():
 
     except Exception as e:
         if "Bad 'BhRestToken' or timed-out." or "BhRestToken" in str(e):
+            logger.warning("Bad 'BhRestToken' or timed-out, attempting to reconnect to Bullhorn")
             raise Exception(str(e))
         else:
+            logger.error("Encountered an error while fetching candidates:")
+            logger.error(f"{str(e)}")
             return jsonify({"error": str(e)}), 500
 
 @app.route('/api/upload', methods=['POST'])   
 def upload_file():
     if 'pdfFile' not in request.files:
+        logger.error("Encountered an error on uploaded candidate: No file part")
         return jsonify({'error': 'No file part'}), 400
 
     file = request.files['pdfFile']
@@ -644,6 +710,8 @@ def upload_file():
         # Cache key for the PDF file
         cache_key = 'uploaded_pdf'
         cache.set(cache_key, pdf_data, timeout=60*60)
+
+        logger.info("Uploaded Pdf successfully extracted using Offshorly parser")
     finally:
         if os.path.exists(pdf_file_path):
             os.remove(pdf_file_path)

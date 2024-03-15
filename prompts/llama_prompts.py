@@ -58,7 +58,7 @@ def language_skill(candidate_data, custom_prompt, parser = LanguageProficiency):
     5 (High): Fluent
     6 (Very High): Native
 
-    Return it as a JSON object
+    Return it as a JSON object, all keys and string values needs to be enclosed in double quotes.
 
     Data: 
     {candidate_data}
