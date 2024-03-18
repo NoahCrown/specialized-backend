@@ -95,7 +95,7 @@ def get_candidate():
 
     except Exception as e:
         if "Bad 'BhRestToken' or timed-out." or "BhRestToken" in str(e):
-            logger.warning("Bad 'BhRestToken' or timed-out, attempting to reconnect to Bullhorn")
+            logger.info("Bad 'BhRestToken' or timed-out, attempting to reconnect to Bullhorn")
             raise Exception(str(e))
         else:
             logger.error("Encountered an error while getting candidate:")
@@ -125,7 +125,7 @@ def search_candidate():
         return candidate_data
     except Exception as e:
         if "Bad 'BhRestToken' or timed-out." or "BhRestToken" in str(e):
-            logger.warning("Bad 'BhRestToken' or timed-out, attempting to reconnect to Bullhorn")
+            logger.info("Bad 'BhRestToken' or timed-out, attempting to reconnect to Bullhorn")
             raise Exception(str(e))
         else:
             logger.error("Encountered an error while searching candidate:")
@@ -211,7 +211,7 @@ def get_candidate_pdf():
         return jsonify(files_data)
     except Exception as e:
         if "Bad 'BhRestToken' or timed-out." or "BhRestToken" in str(e):
-            logger.warning("Bad 'BhRestToken' or timed-out, attempting to reconnect to Bullhorn")
+            logger.info("Bad 'BhRestToken' or timed-out, attempting to reconnect to Bullhorn")
             raise Exception(str(e))
         else:
             logger.error("Encountered an error while getting candidate PDF:")
@@ -282,7 +282,7 @@ def extract_bullhorn_pdf():
         return extracted_data
     except Exception as e:
         if "Bad 'BhRestToken' or timed-out." or "BhRestToken" in str(e):
-            logger.warning("Bad 'BhRestToken' or timed-out, attempting to reconnect to Bullhorn")
+            logger.info("Bad 'BhRestToken' or timed-out, attempting to reconnect to Bullhorn")
             raise Exception(str(e))
         else:
             logger.error("Encountered an error while extracting PDF of a candidate:")
@@ -410,7 +410,7 @@ def get_custom_prompt():
         return response
     except Exception as e:
         if "Bad 'BhRestToken' or timed-out." or "BhRestToken" in str(e):
-            logger.warning("Bad 'BhRestToken' or timed-out, attempting to reconnect to Bullhorn")
+            logger.info("Bad 'BhRestToken' or timed-out, attempting to reconnect to Bullhorn")
             raise Exception(str(e))
         else:
             logger.error("Encountered an error while inferring data of candidate:")
@@ -472,7 +472,7 @@ def get_bulk_custom_prompt():
         return jsonify(results_list)
     except Exception as e:
         if "Bad 'BhRestToken' or timed-out." or "BhRestToken" in str(e):
-            logger.warning("Bad 'BhRestToken' or timed-out, attempting to reconnect to Bullhorn")
+            logger.info("Bad 'BhRestToken' or timed-out, attempting to reconnect to Bullhorn")
             raise Exception(str(e))
         else:
             logger.error("Encountered an error while inferring 100 candidates:")
@@ -551,7 +551,7 @@ def enqueue_task():
         return jsonify({"job_id": job_id}), 202
     except Exception as e:
         if "Bad 'BhRestToken' or timed-out." or "BhRestToken" in str(e):
-            logger.warning("Bad 'BhRestToken' or timed-out, attempting to reconnect to Bullhorn")
+            logger.info("Bad 'BhRestToken' or timed-out, attempting to reconnect to Bullhorn")
             raise Exception(str(e))
         else:
             logger.error("Encountered an error while queueing a request:")
@@ -633,7 +633,7 @@ def filter_data():
 
     except Exception as e:
         if "Bad 'BhRestToken' or timed-out." or "BhRestToken" in str(e):
-            logger.warning("Bad 'BhRestToken' or timed-out, attempting to reconnect to Bullhorn")
+            logger.info("Bad 'BhRestToken' or timed-out, attempting to reconnect to Bullhorn")
             raise Exception(str(e))
         else:
             logger.error("Encountered an error while filtering search:")
@@ -663,7 +663,7 @@ def handle_api_data():
 
     except Exception as e:
         if "Bad 'BhRestToken' or timed-out." or "BhRestToken" in str(e):
-            logger.warning("Bad 'BhRestToken' or timed-out, attempting to reconnect to Bullhorn")
+            logger.info("Bad 'BhRestToken' or timed-out, attempting to reconnect to Bullhorn")
             raise Exception(str(e))
         else:
             logger.error("Encountered an error while fetching candidates:")
