@@ -506,7 +506,7 @@ def worker(task_queue, shared_dict, work_available):
                         'status': 'failed',
                         'error': str(e)
                     }
-                logger.warning(f"Queued inference for candidateID:{str(candidate_id)} failed")
+                logger.error(f"Queued inference for candidateID:{str(candidate_id)} failed")
 
         # Reset the event to go back to sleep until new work arrives
         work_available.clear()
