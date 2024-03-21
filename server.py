@@ -427,11 +427,11 @@ def get_bulk_custom_prompt():
         access_token = bullhorn_auth_helper.get_rest_token()
 
         if infer_data == "age":
-            candidates = f"search/Candidate?BhRestToken={access_token}&query=*:* -(dateOfBirth:[* TO *]) AND isDeleted:false&fields=id,name&sort=-dateAdded&count=100&where=isDeleted=false"
+            candidates = f"search/Candidate?BhRestToken={access_token}&query=*:* -(dateOfBirth:[* TO *]) AND isDeleted:false&fields=id,name&sort=-dateAdded&count=10&where=isDeleted=false"
         elif infer_data == "languageSkills":
-            candidates = f"search/Candidate?BhRestToken={access_token}&query=*:* -(specialties.id:(2000044 OR 2000008 OR 2000009 OR 2000025 OR 2000010 OR 2000011 OR 2000042) OR (2000043 OR 2000015 OR 2000016 OR 2000026 OR 2000017 OR 2000018 OR 2000041)) AND isDeleted:false&fields=id,name&sort=-dateAdded&count=100&where=isDeleted=false"
+            candidates = f"search/Candidate?BhRestToken={access_token}&query=*:* -(specialties.id:(2000044 OR 2000008 OR 2000009 OR 2000025 OR 2000010 OR 2000011 OR 2000042) OR (2000043 OR 2000015 OR 2000016 OR 2000026 OR 2000017 OR 2000018 OR 2000041)) AND isDeleted:false&fields=id,name&sort=-dateAdded&count=10&where=isDeleted=false"
         elif infer_data == "location":
-            candidates = f"search/Candidate?BhRestToken={access_token}&query=*:* (address.country.id:2378) AND isDeleted:false&fields=id,name&sort=-dateAdded&count=100&where=isDeleted=false"
+            candidates = f"search/Candidate?BhRestToken={access_token}&query=*:* (address.country.id:2378) AND isDeleted:false&fields=id,name&sort=-dateAdded&count=10&where=isDeleted=false"
         
         candidate_data = requests.get(SPECIALIZED_URL + candidates)
         if candidate_data.status_code == 401:
