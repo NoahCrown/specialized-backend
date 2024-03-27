@@ -4,6 +4,7 @@ from langchain_community.llms.deepinfra import DeepInfra
 from langchain.prompts import PromptTemplate
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.chains import LLMChain
+from langchain_openai import ChatOpenAI
 from langchain_core.output_parsers import JsonOutputParser
 from langchain_core.pydantic_v1 import BaseModel, Field, EmailStr
 from typing import List, Optional, Literal, Union
@@ -36,7 +37,7 @@ class LocationInference(BaseModel):
 
 def language_skill(candidate_data, custom_prompt, parser = LanguageProficiency):
     load_dotenv()
-    os.environ["DEEPINFRA_API_TOKEN"] = os.getenv('DEEPINFRA_API_TOKEN')
+    os.environ["OPENAI_API_KEY"] = os.getenv('OPENAI_API_KEY')
     if custom_prompt is None:
         custom_prompt = ""
     else:
@@ -66,39 +67,23 @@ def language_skill(candidate_data, custom_prompt, parser = LanguageProficiency):
     Format instructions:
     {format_instructions}
 
-    Previous answer:
-    {response}
-
     Answer:
     [/INST]
     
 """
     query = load_data
     candidate_data= str(candidate_data)
-    text_splitter = RecursiveCharacterTextSplitter(
-        chunk_size=1000,
-        chunk_overlap=20,
-        length_function=len,
-        is_separator_regex=False,
-    )
-    data_list = text_splitter.split_text(candidate_data)
-    response = ""
-    for data in data_list:
-        response = str(response)
-        language_parser = JsonOutputParser(pydantic_object=parser)
-        prompt = PromptTemplate(template=query, input_variables=["custom_prompt","candidate_data","response"],partial_variables={"format_instructions": language_parser.get_format_instructions()})
-        params = {"candidate_data":data, "custom_prompt": custom_prompt, "response": response}
-        llm = DeepInfra(model_id = "meta-llama/Llama-2-70b-chat-hf", verbose=True)
-        llm.model_kwargs = {
-            "temperature": 0
-        }
-        llm_chain = prompt | llm | language_parser
-        response = llm_chain.invoke(params)
+    language_parser = JsonOutputParser(pydantic_object=parser)
+    prompt = PromptTemplate(template=query, input_variables=["custom_prompt","candidate_data"],partial_variables={"format_instructions": language_parser.get_format_instructions()})
+    params = {"candidate_data":candidate_data, "custom_prompt": custom_prompt}
+    llm = ChatOpenAI(model = "gpt-4-0125-preview", temperature= 0)
+    llm_chain = prompt | llm | language_parser
+    response = llm_chain.invoke(params)
     return response
 
 def infer_age(candidate_data, custom_prompt, current_date, parser = AgeInference):
     load_dotenv()
-    os.environ["DEEPINFRA_API_TOKEN"] = os.getenv('DEEPINFRA_API_TOKEN')
+    os.environ["OPENAI_API_KEY"] = os.getenv('OPENAI_API_KEY')
     if custom_prompt is None:
         custom_prompt = ""
     else:
@@ -123,39 +108,23 @@ def infer_age(candidate_data, custom_prompt, current_date, parser = AgeInference
     Format instructions:
     {format_instructions}
 
-    Previous answer:
-    {response}
-
     Answer:
     [/INST]
 
     """
     query = load_data
     candidate_data= str(candidate_data)
-    text_splitter = RecursiveCharacterTextSplitter(
-        chunk_size=3000,
-        chunk_overlap=20,
-        length_function=len,
-        is_separator_regex=False,
-    )
-    data_list = text_splitter.split_text(candidate_data)
-    response = ""
-    for data in data_list:
-        response = str(response)
-        age_parser = JsonOutputParser(pydantic_object=parser)
-        prompt = PromptTemplate(template=query, input_variables=["custom_prompt","candidate_data","current_date","response"],partial_variables={"format_instructions": age_parser.get_format_instructions()})
-        params = {"candidate_data":data, "custom_prompt": custom_prompt, "current_date": current_date,"response": response}
-        llm = DeepInfra(model_id = "meta-llama/Llama-2-70b-chat-hf", verbose=True)
-        llm.model_kwargs = {
-            "temperature": 0
-        }
-        llm_chain = prompt | llm | age_parser
-        response = llm_chain.invoke(params)
+    age_parser = JsonOutputParser(pydantic_object=parser)
+    prompt = PromptTemplate(template=query, input_variables=["custom_prompt","candidate_data","current_date"],partial_variables={"format_instructions": age_parser.get_format_instructions()})
+    params = {"candidate_data":candidate_data, "custom_prompt": custom_prompt, "current_date": current_date}
+    llm = ChatOpenAI(model = "gpt-4-0125-preview", temperature= 0)
+    llm_chain = prompt | llm | age_parser
+    response = llm_chain.invoke(params)
     return response
     
 def infer_location(candidate_data, custom_prompt, current_date, parser = LocationInference):
     load_dotenv()
-    os.environ["DEEPINFRA_API_TOKEN"] = os.getenv('DEEPINFRA_API_TOKEN')
+    os.environ["OPENAI_API_KEY"] = os.getenv('OPENAI_API_KEY')
     if custom_prompt is None:
         custom_prompt = ""
     else:
@@ -179,32 +148,16 @@ def infer_location(candidate_data, custom_prompt, current_date, parser = Locatio
     Format instructions:
     {format_instructions}
 
-    Previous answer:
-    {response}
-
     Answer:
     [/INST]
 
     """
     query = load_data
     candidate_data= str(candidate_data)
-    text_splitter = RecursiveCharacterTextSplitter(
-        chunk_size=3000,
-        chunk_overlap=20,
-        length_function=len,
-        is_separator_regex=False,
-    )
-    data_list = text_splitter.split_text(candidate_data)
-    response = ""
-    for data in data_list:
-        response = str(response)
-        location_parser = JsonOutputParser(pydantic_object=parser)
-        prompt = PromptTemplate(template=query, input_variables=["custom_prompt","candidate_data","current_date","response"],partial_variables={"format_instructions": location_parser.get_format_instructions()})
-        params = {"candidate_data":data, "custom_prompt": custom_prompt, "current_date": current_date,"response": response}
-        llm = DeepInfra(model_id = "meta-llama/Llama-2-70b-chat-hf", verbose=True)
-        llm.model_kwargs = {
-            "temperature": 0
-        }
-        llm_chain = prompt | llm | location_parser
-        response = llm_chain.invoke(params)
+    location_parser = JsonOutputParser(pydantic_object=parser)
+    prompt = PromptTemplate(template=query, input_variables=["custom_prompt","candidate_data","current_date"],partial_variables={"format_instructions": location_parser.get_format_instructions()})
+    params = {"candidate_data":candidate_data, "custom_prompt": custom_prompt, "current_date": current_date}
+    llm = ChatOpenAI(model = "gpt-4-0125-preview", temperature= 0)
+    llm_chain = prompt | llm | location_parser
+    response = llm_chain.invoke(params)
     return response
