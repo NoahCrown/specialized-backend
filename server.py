@@ -27,13 +27,13 @@ import tempfile
 import json
 
 app = Flask(__name__)
-socketio = SocketIO(app, cors_allowed_origins="*")
-task_queue = Queue()
+# socketio = SocketIO(app, cors_allowed_origins="*")
+# task_queue = Queue()
 CORS(app)
 
 cache = SimpleCache()
-work_available = Event()
-dict_lock = Lock()
+# work_available = Event()
+# dict_lock = Lock()
 
 load_dotenv()
 CLIENT_ID = os.getenv('SPECIALIZED_CLIENT_ID')
