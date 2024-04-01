@@ -13,6 +13,17 @@ import fitz
 import json
 from PyPDF2 import PdfReader
 from langdetect import detect
+from langchain.callbacks.manager import get_openai_callback
+from helpers.app_logger import LoggerFactory
+
+# Initialize Logger
+app_name = os.getenv('APP_NAME')
+syslog_address = os.getenv('SYSLOG_ADDRESS')
+syslog_port = os.getenv('SYSLOG_PORT')
+syslog_port = int(syslog_port)
+
+logger_factory = LoggerFactory(app_name, syslog_address, syslog_port)
+logger = logger_factory.get_logger()
 
 
 
@@ -77,9 +88,10 @@ def run_llama_candidate(lang,query,text,parser):
     llm = ChatOpenAI(model = "gpt-4-0125-preview", temperature= 0)
     chain = prompt | llm | parser
     # llm_chain = prompt | llm | parser
-    response_candidate = chain.invoke({"text": text})
+    with get_openai_callback() as cb:
+        response_candidate = chain.invoke({"text": text})
+        logger.info(cb)
     # response = parse_json_with_autofix(response)
-    print(response_candidate)
     return response_candidate
 
 def extract_cv(pdf_file):

@@ -1,14 +1,21 @@
 import os
-import json
-from langchain_community.llms.deepinfra import DeepInfra
 from langchain.prompts import PromptTemplate
-from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.chains import LLMChain
 from langchain_openai import ChatOpenAI
 from langchain_core.output_parsers import JsonOutputParser
 from langchain_core.pydantic_v1 import BaseModel, Field, EmailStr
 from typing import List, Optional, Literal, Union
 from dotenv import load_dotenv
+from langchain.callbacks.manager import get_openai_callback
+from helpers.app_logger import LoggerFactory
+
+# Initialize Logger
+app_name = os.getenv('APP_NAME')
+syslog_address = os.getenv('SYSLOG_ADDRESS')
+syslog_port = os.getenv('SYSLOG_PORT')
+syslog_port = int(syslog_port)
+
+logger_factory = LoggerFactory(app_name, syslog_address, syslog_port)
+logger = logger_factory.get_logger()
 
 class EnglishProficiency(BaseModel):
     Language: Literal["English"] = Field(default="English", description="The language is English.")
@@ -78,7 +85,9 @@ def language_skill(candidate_data, custom_prompt, parser = LanguageProficiency):
     params = {"candidate_data":candidate_data, "custom_prompt": custom_prompt}
     llm = ChatOpenAI(model = "gpt-4-0125-preview", temperature= 0)
     llm_chain = prompt | llm | language_parser
-    response = llm_chain.invoke(params)
+    with get_openai_callback() as cb:
+        response = llm_chain.invoke(params)
+        logger.info(cb)
     return response
 
 def infer_age(candidate_data, custom_prompt, current_date, parser = AgeInference):
@@ -119,7 +128,9 @@ def infer_age(candidate_data, custom_prompt, current_date, parser = AgeInference
     params = {"candidate_data":candidate_data, "custom_prompt": custom_prompt, "current_date": current_date}
     llm = ChatOpenAI(model = "gpt-4-0125-preview", temperature= 0)
     llm_chain = prompt | llm | age_parser
-    response = llm_chain.invoke(params)
+    with get_openai_callback() as cb:
+        response = llm_chain.invoke(params)
+        logger.info(cb)
     return response
     
 def infer_location(candidate_data, custom_prompt, current_date, parser = LocationInference):
@@ -159,5 +170,7 @@ def infer_location(candidate_data, custom_prompt, current_date, parser = Locatio
     params = {"candidate_data":candidate_data, "custom_prompt": custom_prompt, "current_date": current_date}
     llm = ChatOpenAI(model = "gpt-4-0125-preview", temperature= 0)
     llm_chain = prompt | llm | location_parser
-    response = llm_chain.invoke(params)
+    with get_openai_callback() as cb:
+        response = llm_chain.invoke(params)
+        logger.info(cb)
     return response
