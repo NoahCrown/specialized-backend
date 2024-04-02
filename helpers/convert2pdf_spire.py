@@ -14,11 +14,12 @@ def convert_to_pdf(input_file_path):
     document = Document()
     # Load a Word DOCX file
     document.LoadFromFile(input_file_path)
-    # Or load a Word DOC file
-    #document.LoadFromFile("Sample.doc")
+    parameter = ToPdfParameterList()
 
-    # Save the file to a PDF file
+    # Embed fonts in PDF
+    parameter.IsEmbeddedAllFonts = True
     document.SaveToFile(pdf_file_path, FileFormat.PDF)
+    document.Dispose()
     document.Close()
 
     return pdf_file_path
