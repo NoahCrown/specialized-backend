@@ -1,4 +1,5 @@
 import logging
+import os
 import socket
 from logging.handlers import SysLogHandler
 
@@ -9,7 +10,7 @@ class LoggerFactory:
         self.syslog_port = syslog_port
 
     class ContextFilter(logging.Filter):
-        hostname = socket.gethostname()
+        hostname = os.getenv("APP_URL", socket.gethostname())
 
         def filter(self, record):
             record.hostname = self.hostname
