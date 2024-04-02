@@ -14,16 +14,6 @@ import json
 from PyPDF2 import PdfReader
 from langdetect import detect
 from langchain.callbacks.manager import get_openai_callback
-from helpers.app_logger import LoggerFactory
-
-# Initialize Logger
-app_name = os.getenv('APP_NAME')
-syslog_address = os.getenv('SYSLOG_ADDRESS')
-syslog_port = os.getenv('SYSLOG_PORT')
-syslog_port = int(syslog_port)
-
-logger_factory = LoggerFactory(app_name, syslog_address, syslog_port)
-logger = logger_factory.get_logger()
 
 
 
@@ -83,7 +73,7 @@ def get_workhistory_from_text(lang, text):
     response = chain.run({"text": text})
     return response
 
-def run_llama_candidate(lang,query,text,parser):
+def run_llama_candidate(lang,query,text,parser, logger):
     prompt = PromptTemplate(template=query, input_variables=["text"], partial_variables={"format_instructions": parser.get_format_instructions()})
     llm = ChatOpenAI(model = "gpt-4-0125-preview", temperature= 0)
     chain = prompt | llm | parser
@@ -94,7 +84,7 @@ def run_llama_candidate(lang,query,text,parser):
     # response = parse_json_with_autofix(response)
     return response_candidate
 
-def extract_cv(pdf_file):
+def extract_cv(pdf_file, logger):
     load_dotenv()
     os.environ["OPENAI_API_KEY"] = os.getenv('OPENAI_API_KEY')
     # pdf_reader = PdfReader(pdf_file)
@@ -165,8 +155,8 @@ def extract_cv(pdf_file):
     workhistory_parser = JsonOutputParser(pydantic_object=CandidateWorkHistory)
 
     with ThreadPoolExecutor(max_workers=2) as executor:
-        future_task1 = executor.submit(run_llama_candidate, lang, query, filtered_text, candidate_parser)
-        future_task2 = executor.submit(run_llama_candidate, lang, workhistory_query, filtered_text, workhistory_parser)
+        future_task1 = executor.submit(run_llama_candidate, lang, query, filtered_text, candidate_parser, logger)
+        future_task2 = executor.submit(run_llama_candidate, lang, workhistory_query, filtered_text, workhistory_parser, logger)
         
         result_task1 = future_task1.result()
         result_task2 = future_task2.result()

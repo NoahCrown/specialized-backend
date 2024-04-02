@@ -269,7 +269,7 @@ def extract_bullhorn_pdf():
             else:
                 pdf_file_path = temp_file_path
 
-            extracted_data = extract_cv(pdf_file_path)
+            extracted_data = extract_cv(pdf_file_path, logger)
             cache_key = 'extracted_cv'
             cache.set(cache_key, extracted_data, timeout=60 * 60)
 
@@ -390,22 +390,22 @@ def get_custom_prompt():
                 candidate_workhistory = candidate_workhistory.json()
                 candidate_workhistory = candidate_workhistory['data']
                 candidate_data = [candidate_data, candidate_workhistory]
-                response = summarize_data(candidate_data, custom_prompt, infer_data)
+                response = summarize_data(candidate_data, custom_prompt, infer_data, logger)
 
             elif infer_data == "age" and candidate_data["dateOfBirth"] is not None:
-                response = summarize_data(candidate_data, custom_prompt, infer_data)
+                response = summarize_data(candidate_data, custom_prompt, infer_data, logger)
             logger.info(f"Inferring {infer_data} of candidateID {str(candidate_id)} successful")
         else:
             cache_key = 'extracted_cv'
             candidate_data = cache.get(cache_key)
             if infer_data == "languageSkills":
-                response = summarize_data(candidate_data, custom_prompt, infer_data)
+                response = summarize_data(candidate_data, custom_prompt, infer_data, logger)
             elif infer_data == "age" and candidate_data[0]["dateOfBirth"] is not None:
-                response = summarize_data(candidate_data, custom_prompt, infer_data)
+                response = summarize_data(candidate_data, custom_prompt, infer_data, logger)
             elif infer_data == "age" and candidate_data[0]["dateOfBirth"] is None:
-                response = summarize_data(candidate_data, custom_prompt, infer_data)
+                response = summarize_data(candidate_data, custom_prompt, infer_data, logger)
             elif infer_data == "location":
-                response = summarize_data(candidate_data, custom_prompt, infer_data)
+                response = summarize_data(candidate_data, custom_prompt, infer_data, logger)
             logger.info(f"Inferring {infer_data} of uploaded CV successful")
         return response
     except Exception as e:
@@ -703,7 +703,7 @@ def upload_file():
             pdf_data = pdf_file.read()
         pdf_data = base64.b64encode(pdf_data).decode("utf-8")
 
-        extracted_data = extract_cv(pdf_file_path)
+        extracted_data = extract_cv(pdf_file_path, logger)
 
         cache_key = 'extracted_cv'
         cache.set(cache_key, extracted_data, timeout=60*60)

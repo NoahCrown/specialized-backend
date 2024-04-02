@@ -6,16 +6,6 @@ from langchain_core.pydantic_v1 import BaseModel, Field, EmailStr
 from typing import List, Optional, Literal, Union
 from dotenv import load_dotenv
 from langchain.callbacks.manager import get_openai_callback
-from helpers.app_logger import LoggerFactory
-
-# Initialize Logger
-app_name = os.getenv('APP_NAME')
-syslog_address = os.getenv('SYSLOG_ADDRESS')
-syslog_port = os.getenv('SYSLOG_PORT')
-syslog_port = int(syslog_port)
-
-logger_factory = LoggerFactory(app_name, syslog_address, syslog_port)
-logger = logger_factory.get_logger()
 
 class EnglishProficiency(BaseModel):
     Language: Literal["English"] = Field(default="English", description="The language is English.")
@@ -42,7 +32,7 @@ class LocationInference(BaseModel):
     confidence: int = Field(..., ge=1, le=5, description="AI's confidence in inferring the data, 1 being (Extremely low confidence), 2 being (Low confidence), 3 being (Confident), 4 being (High confidence), 5 being (Very Confident).")
     explanation: str = Field(..., description="Explanation about the inference on the current location of the candidate")
 
-def language_skill(candidate_data, custom_prompt, parser = LanguageProficiency):
+def language_skill(candidate_data, custom_prompt, logger, parser = LanguageProficiency):
     load_dotenv()
     os.environ["OPENAI_API_KEY"] = os.getenv('OPENAI_API_KEY')
     if custom_prompt is None:
@@ -90,7 +80,7 @@ def language_skill(candidate_data, custom_prompt, parser = LanguageProficiency):
         logger.info(cb)
     return response
 
-def infer_age(candidate_data, custom_prompt, current_date, parser = AgeInference):
+def infer_age(candidate_data, custom_prompt, current_date, logger, parser = AgeInference):
     load_dotenv()
     os.environ["OPENAI_API_KEY"] = os.getenv('OPENAI_API_KEY')
     if custom_prompt is None:
@@ -133,7 +123,7 @@ def infer_age(candidate_data, custom_prompt, current_date, parser = AgeInference
         logger.info(cb)
     return response
     
-def infer_location(candidate_data, custom_prompt, current_date, parser = LocationInference):
+def infer_location(candidate_data, custom_prompt, current_date, logger, parser = LocationInference):
     load_dotenv()
     os.environ["OPENAI_API_KEY"] = os.getenv('OPENAI_API_KEY')
     if custom_prompt is None:
