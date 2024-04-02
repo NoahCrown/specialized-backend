@@ -15,7 +15,15 @@ def convert_to_pdf(input_file_path):
     # Load a Word DOCX file
     document.LoadFromFile(input_file_path)
     parameter = ToPdfParameterList()
+    fonts = []
+    fonts.append(PrivateFontPath("NotoSansJP",FontStyle.Regular,os.path.join(output_directory,".fonts/NotoSansJP-VariableFont_wght.ttf")))
+    fonts.append(PrivateFontPath("NotoSansHK",FontStyle.Regular,os.path.join(output_directory,".fonts/NotoSansHK-VariableFont_wght.ttf")))
+    fonts.append(PrivateFontPath("NotoSansKR",FontStyle.Regular,os.path.join(output_directory,".fonts/NotoSansKR-VariableFont_wght.ttf")))
+    fonts.append(PrivateFontPath("NotoSansSC",FontStyle.Regular,os.path.join(output_directory,".fonts/NotoSansSC-VariableFont_wght.ttf")))
+    fonts.append(PrivateFontPath("NotoSansTC",FontStyle.Regular,os.path.join(output_directory,".fonts/NotoSansTC-VariableFont_wght.ttf")))
+    fonts.append(PrivateFontPath("NotoSansThai",FontStyle.Regular,os.path.join(output_directory,".fonts/NotoSansThai-VariableFont_wght.ttf")))
 
+    parameter.PrivateFontPaths = fonts
     # Embed fonts in PDF
     parameter.IsEmbeddedAllFonts = True
     document.SaveToFile(pdf_file_path, FileFormat.PDF)
