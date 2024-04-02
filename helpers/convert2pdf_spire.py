@@ -26,6 +26,7 @@ def convert_to_pdf(input_file_path):
     parameter.PrivateFontPaths = fonts
     # Embed fonts in PDF
     parameter.IsEmbeddedAllFonts = True
+    parameter.UsePSCoversion = True
     document.SaveToFile(pdf_file_path, FileFormat.PDF)
     document.Dispose()
     document.Close()
