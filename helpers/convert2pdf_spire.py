@@ -15,20 +15,19 @@ def convert_to_pdf(input_file_path):
     # Load a Word DOCX file
     document.LoadFromFile(input_file_path)
     parameter = ToPdfParameterList()
-    fonts = []
-    fonts.append(PrivateFontPath("NotoSansJP",FontStyle.Regular,os.path.join(output_directory,".fonts/NotoSansJP-VariableFont_wght.ttf")))
-    fonts.append(PrivateFontPath("NotoSansHK",FontStyle.Regular,os.path.join(output_directory,".fonts/NotoSansHK-VariableFont_wght.ttf")))
-    fonts.append(PrivateFontPath("NotoSansKR",FontStyle.Regular,os.path.join(output_directory,".fonts/NotoSansKR-VariableFont_wght.ttf")))
-    fonts.append(PrivateFontPath("NotoSansSC",FontStyle.Regular,os.path.join(output_directory,".fonts/NotoSansSC-VariableFont_wght.ttf")))
-    fonts.append(PrivateFontPath("NotoSansTC",FontStyle.Regular,os.path.join(output_directory,".fonts/NotoSansTC-VariableFont_wght.ttf")))
-    fonts.append(PrivateFontPath("NotoSansThai",FontStyle.Regular,os.path.join(output_directory,".fonts/NotoSansThai-VariableFont_wght.ttf")))
-    fonts.append(PrivateFontPath("Arial",FontStyle.Regular,os.path.join(output_directory,".fonts/arial.ttf")))
-    fonts.append(PrivateFontPath("MS Gothic",FontStyle.Regular,os.path.join(output_directory,".fonts/MS Gothic.ttf")))
-    fonts.append(PrivateFontPath("Microsoft YaHei UI",FontStyle.Regular,os.path.join(output_directory,".fonts/MicrosoftYaHeiUI.ttf")))
-    fonts.append(PrivateFontPath("SimSun",FontStyle.Regular,os.path.join(output_directory,".fonts/SimSun.ttf")))
-    fonts.append(PrivateFontPath("Times New Roman",FontStyle.Regular,os.path.join(output_directory,".fonts/Times New Roman.ttf")))
+    document.EmbedFontsInFile = True
+    document.PrivateFontList.append(PrivateFontPath(fontName="NotoSansJP",fontPath=os.path.join(output_directory,".fonts/NotoSansJP-VariableFont_wght.ttf")))
+    document.PrivateFontList.append(PrivateFontPath(fontName="NotoSansHK",fontPath=os.path.join(output_directory,".fonts/NotoSansHK-VariableFont_wght.ttf")))
+    document.PrivateFontList.append(PrivateFontPath(fontName="NotoSansKR",fontPath=os.path.join(output_directory,".fonts/NotoSansKR-VariableFont_wght.ttf")))
+    document.PrivateFontList.append(PrivateFontPath(fontName="NotoSansSC",fontPath=os.path.join(output_directory,".fonts/NotoSansSC-VariableFont_wght.ttf")))
+    document.PrivateFontList.append(PrivateFontPath(fontName="NotoSansTC",fontPath=os.path.join(output_directory,".fonts/NotoSansTC-VariableFont_wght.ttf")))
+    document.PrivateFontList.append(PrivateFontPath(fontName="NotoSansThai",fontPath=os.path.join(output_directory,".fonts/NotoSansThai-VariableFont_wght.ttf")))
+    document.PrivateFontList.append(PrivateFontPath(fontName="Arial",fontPath=os.path.join(output_directory,".fonts/arial.ttf")))
+    document.PrivateFontList.append(PrivateFontPath(fontName="MS Gothic",fontPath=os.path.join(output_directory,".fonts/MS Gothic.ttf")))
+    document.PrivateFontList.append(PrivateFontPath(fontName="Microsoft YaHei UI",fontPath=os.path.join(output_directory,".fonts/MicrosoftYaHeiUI.ttf")))
+    document.PrivateFontList.append(PrivateFontPath(fontName="SimSun",fontPath=os.path.join(output_directory,".fonts/SimSun.ttf")))
+    document.PrivateFontList.append(PrivateFontPath(fontName="Times New Roman",fontPath=os.path.join(output_directory,".fonts/Times New Roman.ttf")))
 
-    parameter.PrivateFontPaths = fonts
     # Embed fonts in PDF
     parameter.IsEmbeddedAllFonts = True
     parameter.UsePSCoversion = True
