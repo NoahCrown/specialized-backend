@@ -448,7 +448,7 @@ def get_bulk_custom_prompt():
         candidate_id_to_name = {item['id']: item['name'] for item in candidate_items}
 
         # Prepare to store the results
-        params_list = [(cid, custom_prompt, infer_data, SPECIALIZED_URL) for cid in candidate_id_to_name.keys()]
+        params_list = [(cid, custom_prompt, infer_data, SPECIALIZED_URL, logger) for cid in candidate_id_to_name.keys()]
 
         results_list = []
 

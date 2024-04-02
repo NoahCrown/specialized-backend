@@ -28,8 +28,8 @@ class Candidate(BaseModel):
     educationDegree: str = Field(description="Highest educational degree obtained by the candidate")
     email: str = Field(description="Candidate's email address")
     ethnicity: Optional[str] = Field(description="Candidate's self-reported ethnicity (optional)")
-    firstName: str = Field(description="Candidate's first name")
-    lastName: str = Field(description="Candidate's last name")
+    firstName: str = Field(description="Candidate's first name. For names in any script other than English (e.g., Cyrillic, Arabic, Chinese characters, etc.), transliterate them into English characters, ensuring the phonetic spelling reflects the name's true pronunciation as accurately as possible.")
+    lastName: str = Field(description="Candidate's last name. For names in any script other than English (e.g., Cyrillic, Arabic, Chinese characters, etc.), transliterate them into English characters, ensuring the phonetic spelling reflects the name's true pronunciation as accurately as possible.")
     phone: str = Field(description="Candidate's contact phone number")
     primarySkills: SkillData = Field(description="Primary skills or competencies of the candidate")
     secondarySkills: SkillData = Field(description="Secondary skills or competencies of the candidate")
@@ -38,7 +38,7 @@ class Candidate(BaseModel):
 
 class WorkExperience(BaseModel):
     comments: str = Field(description="Full description or remarks about the work experience")
-    companyName: str = Field(description="Name of the company associated with the work experience")
+    companyName: str = Field(description="Name of the company associated with the work experience. For names in any script other than English (e.g., Cyrillic, Arabic, Chinese characters, etc.), transliterate them into English characters, ensuring the phonetic spelling reflects the name's true pronunciation as accurately as possible.")
     endDate: int = Field(description="End date of the work experience, represented as an millisecond epoch format")
     isLastJob: bool = Field(description="Indicates whether this position was the candidate's most recent job")
     startDate: int = Field(description="Start date of the work experience, represented as an millisecond epoch format")

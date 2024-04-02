@@ -20,7 +20,7 @@ bullhorn_auth_helper.authenticate(USERNAME, PASSWORD)
 @on_401_error(lambda: bullhorn_auth_helper.authenticate(USERNAME, PASSWORD))
 def run_custom_prompt(params):
 
-    candidate_id, custom_prompt, infer_data, SPECIALIZED_URL= params
+    candidate_id, custom_prompt, infer_data, SPECIALIZED_URL, logger= params
     access_token = bullhorn_auth_helper.get_rest_token()
     try:
         search_candidate_by_id_url = f'search/Candidate?BhRestToken={access_token}&query=id:{candidate_id}&fields=id,firstName,lastName,email,phone,dateOfBirth,address,certifications,ethnicity,primarySkills,educationDegree,comments,secondarySkills,skillSet,specialties'
@@ -49,10 +49,10 @@ def run_custom_prompt(params):
             candidate_workhistory = candidate_workhistory.json()
             candidate_workhistory = candidate_workhistory['data']
             candidate_data = [candidate_data, candidate_workhistory]
-            response = summarize_data(candidate_data, custom_prompt, infer_data)
+            response = summarize_data(candidate_data, custom_prompt, infer_data, logger)
 
         elif infer_data == "age" and candidate_data["dateOfBirth"] is not None:
-            response = summarize_data(candidate_data, custom_prompt, infer_data)
+            response = summarize_data(candidate_data, custom_prompt, infer_data, logger)
         status = "success"
     except Exception as e:
         if "Bad 'BhRestToken' or timed-out." or "BhRestToken" in str(e):
