@@ -24,7 +24,7 @@ def convert_to_pdf(input_file_path):
     fonts.append(PrivateFontPath("NotoSansThai",FontStyle.Regular,os.path.join(output_directory,".fonts/NotoSansThai-VariableFont_wght.ttf")))
     fonts.append(PrivateFontPath("Arial",FontStyle.Regular,os.path.join(output_directory,".fonts/arial.ttf")))
     fonts.append(PrivateFontPath("MS Gothic",FontStyle.Regular,os.path.join(output_directory,".fonts/MS Gothic.ttf")))
-    fonts.append(PrivateFontPath("Microsoft Yahei UI",FontStyle.Regular,os.path.join(output_directory,".fonts/MicrosoftYaHeiUI.ttf")))
+    fonts.append(PrivateFontPath("Microsoft YaHei UI",FontStyle.Regular,os.path.join(output_directory,".fonts/MicrosoftYaHeiUI.ttf")))
     fonts.append(PrivateFontPath("SimSun",FontStyle.Regular,os.path.join(output_directory,".fonts/SimSun.ttf")))
     fonts.append(PrivateFontPath("Times New Roman",FontStyle.Regular,os.path.join(output_directory,".fonts/Times New Roman.ttf")))
 
