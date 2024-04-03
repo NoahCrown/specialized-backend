@@ -29,7 +29,7 @@ import json
 app = Flask(__name__)
 # socketio = SocketIO(app, cors_allowed_origins="*")
 # task_queue = Queue()
-CORS(app)
+CORS(app, resources={r"/api/*": {"origins": "https://specialized.offshorly.com/"}})
 
 cache = SimpleCache()
 # work_available = Event()
