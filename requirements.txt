@@ -26,6 +26,7 @@ docx2txt==0.8
 ebcdic==1.1.1
 exceptiongroup==1.2.0
 extract-msg==0.28.7
+faiss-cpu==1.8.0.post1
 filelock==3.13.1
 Flask==3.0.0
 Flask-Cors==4.0.0
