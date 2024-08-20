@@ -761,7 +761,10 @@ def upload_file():
 @app.route('/api/automated-bulk-infer', methods=['POST'])
 def bulk_custom_prompt():
     try:
-      
+        received_data = request.json
+        custom_prompt = received_data["response"]
+        infer_data = received_data["dataToInfer"]
+        access_token = bullhorn_auth_helper.get_rest_token()
         access_token = bullhorn_auth_helper.get_rest_token()
 
         if infer_data == "age":
