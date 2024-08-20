@@ -834,7 +834,7 @@ def bulk_custom_prompt():
 #     # Clean up
 #     p.join()
 
-@app.route('/', method=['POST'])
+@app.route('/', method=['GET'])
 def initialize_vector_store():
     vector_store = JobDescriptionVectorStore()
     if vector_store.is_empty():
