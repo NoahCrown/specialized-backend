@@ -110,6 +110,7 @@ typing_extensions==4.9.0
 tzdata==2024.1
 tzlocal==5.2
 urllib3==2.1.0
+waitress==3.0.0
 Werkzeug==3.0.1
 wsproto==1.2.0
 xlrd==1.2.0

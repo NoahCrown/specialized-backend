@@ -834,12 +834,11 @@ def bulk_custom_prompt():
 #     # Clean up
 #     p.join()
 
+@app.route('/', method=['POST'])
 def initialize_vector_store():
     vector_store = JobDescriptionVectorStore()
     if vector_store.is_empty():
         csv_file_path = './data/Moribian_Data.csv'
         load_job_descriptions_from_csv(csv_file_path, vector_store)
     return vector_store
-
-vector_store = initialize_vector_store()
 
