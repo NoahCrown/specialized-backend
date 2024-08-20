@@ -5,6 +5,7 @@ anthropic==0.19.2
 anyio==4.2.0
 argcomplete==1.10.3
 asgiref==3.7.2
+aspose-words==24.3.0
 async-timeout==4.0.3
 attrs==23.1.0
 beautifulsoup4==4.8.2
@@ -93,6 +94,7 @@ sortedcontainers==2.4.0
 soupsieve==2.5
 SpeechRecognition==3.8.1
 Spire.Doc==12.2.1
+Spire.Pdf==10.2.0
 SQLAlchemy==2.0.23
 sqlparse==0.4.4
 tenacity==8.2.3
