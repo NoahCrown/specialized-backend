@@ -19,9 +19,13 @@ from helpers.get_cv_data_llama import extract_cv
 from helpers.sanitize_b64 import sanitize_base64, get_file_type_from_base64
 from helpers.convert2pdf_spire import convert_to_pdf, allowed_file
 from helpers.bullhorn_access import BullhornAuthHelper, on_401_error
+from helpers.vector_store import get_store
+from helpers.moribian_ai import improve_prompt
+from helpers.vector_store import load_job_descriptions_from_csv, JobDescriptionVectorStore
 from prompts.data_prompt import AGE_BASE_PROMPT, LANGUAGE_SKILL_BASE_PROMPT, LOCATION_BASE_PROMPT
 from prompts.prompt_database import read_item, SavePrompts, LoadPrompts, DeletePrompts
 from flask_cors import CORS
+
 import requests
 import tempfile
 import json
@@ -54,6 +58,42 @@ syslog_port = int(syslog_port)
 
 logger_factory = LoggerFactory(app_name, syslog_address, syslog_port)
 logger = logger_factory.get_logger()
+
+@app.route('/api/qa', methods=['POST'])
+def quality_assurance():
+    if request.method == 'POST':
+        try:
+            data = request.get_json()
+            if not data or 'data' not in data:
+                return jsonify({"error": "No data provided"}), 400
+
+            job_description = data['data']
+            store = get_store()
+            
+            # Perform similarity search
+            similar_docs = store.vectorstore.similarity_search_with_score(job_description, k=1)
+            
+            if similar_docs:
+                doc, score = similar_docs[0]
+                result = {
+                    "content": doc.page_content,
+                    "source": doc.metadata.get('source', 'Unknown'),
+                    "similarity_score": float(score)
+                }
+            else:
+                result = None
+
+            improved_data = improve_prompt(data, result)
+
+            return improved_data, 200
+            
+            # return jsonify({
+            #     "input_job_description": job_description[:100] + "...",  # Truncate for brevity
+            #     "most_similar_job": result
+            # }), 200
+
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
 
 @app.route('/api/get_candidate', methods=['POST'])
 @on_401_error(lambda: bullhorn_auth_helper.authenticate(USERNAME, PASSWORD))
@@ -718,6 +758,66 @@ def upload_file():
 
     return jsonify(extracted_data)
 
+@app.route('/api/automated-bulk-infer', methods=['POST'])
+def bulk_custom_prompt():
+    try:
+      
+        access_token = bullhorn_auth_helper.get_rest_token()
+
+        if infer_data == "age":
+            candidates = f"search/Candidate?BhRestToken={access_token}&query=*:* -(dateOfBirth:[* TO *]) AND isDeleted:false&fields=id,name&sort=-dateAdded&count=10&where=isDeleted=false"
+        elif infer_data == "languageSkills":
+            candidates = f"search/Candidate?BhRestToken={access_token}&query=*:* -(specialties.id:(2000044 OR 2000008 OR 2000009 OR 2000025 OR 2000010 OR 2000011 OR 2000042) OR (2000043 OR 2000015 OR 2000016 OR 2000026 OR 2000017 OR 2000018 OR 2000041)) AND isDeleted:false&fields=id,name&sort=-dateAdded&count=10&where=isDeleted=false"
+        elif infer_data == "location":
+            candidates = f"search/Candidate?BhRestToken={access_token}&query=*:* (address.country.id:2378) AND isDeleted:false&fields=id,name&sort=-dateAdded&count=10&where=isDeleted=false"
+        
+        candidate_data = requests.get(SPECIALIZED_URL + candidates)
+        if candidate_data.status_code == 401:
+            try:
+                error = candidate_data.json()
+                raise Exception(error["message"])
+            except:
+                raise Exception(error)
+
+        candidate_data = candidate_data.json()
+        candidate_items = candidate_data['data']
+
+        logger.info(f"Attempting to infer {infer_data} of 100 candidates")
+        candidate_id_to_name = {item['id']: item['name'] for item in candidate_items}
+
+        # Prepare to store the results
+        params_list = [(cid, custom_prompt, infer_data, SPECIALIZED_URL, logger) for cid in candidate_id_to_name.keys()]
+
+        results_list = []
+
+        num_processes = min(10, cpu_count())
+        chunk_size = max(10, math.ceil(len(params_list) / num_processes))
+
+        # Process in batches of 10
+        with Pool(processes=num_processes) as pool:
+            for params_batch in chunked_iterable(params_list, chunk_size):
+                batch_results = pool.map(run_custom_prompt, params_batch)
+                for cid, status, result in batch_results:
+                    candidate_name = candidate_id_to_name[cid]
+                    results_list.append({
+                        'id': cid,  # Include candidate ID if needed
+                        'name': candidate_name,
+                        'status': status,
+                        **result  # Merge result dict which could contain 'data' or 'error'
+                    })
+                    logger.info(f"Inferring {infer_data} of candidateID {cid} {status}")
+        logger.info("inference for 100 candidates successful")
+        return jsonify(results_list)
+    except Exception as e:
+        if "Bad 'BhRestToken' or timed-out." or "BhRestToken" in str(e):
+            logger.info("Bad 'BhRestToken' or timed-out, attempting to reconnect to Bullhorn")
+            raise Exception(str(e))
+        else:
+            logger.error("Encountered an error while inferring 100 candidates:")
+            logger.error(f"{str(e)}")
+            return jsonify({"error": str(e)}), 500
+
+
 # if __name__ == '__main__':
 #     manager = Manager()
 #     shared_dict = manager.dict()
@@ -732,4 +832,14 @@ def upload_file():
 #     p.join()
 
 if __name__ == '__main__':
+    # Initialize the vector store
+    vector_store = JobDescriptionVectorStore()
+    # vector_store.clear_vectorstore()
+    print(vector_store.is_empty())
+
+    if (vector_store.is_empty()):
+        csv_file_path = './data/Moribian_Data.csv'
+        load_job_descriptions_from_csv(csv_file_path, vector_store)
+
     app.run(host='0.0.0.0', port=10000)
+
