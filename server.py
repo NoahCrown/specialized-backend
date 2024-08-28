@@ -81,7 +81,6 @@ def quality_assurance():
         return jsonify({"error": "Vector store not initialized. Please call /init_vector_store first."}), 400
     if request.method == 'POST':
         try:
-            init_vector_store()
             data = request.get_json()
             if not data or 'data' not in data:
                 return jsonify({"error": "No data provided"}), 400
