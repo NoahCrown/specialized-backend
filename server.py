@@ -61,12 +61,14 @@ logger_factory = LoggerFactory(app_name, syslog_address, syslog_port)
 logger = logger_factory.get_logger()
 
 @app.route('/api/qa', methods=['POST'])
+
 def quality_assurance():
     global vector_store
     if vector_store is None:
         return jsonify({"error": "Vector store not initialized. Please call /init_vector_store first."}), 400
     if request.method == 'POST':
         try:
+            vector_store = JobDescriptionVectorStore()
             data = request.get_json()
             if not data or 'data' not in data:
                 return jsonify({"error": "No data provided"}), 400
