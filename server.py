@@ -73,6 +73,7 @@ def init_vector_store():
         return jsonify({"message": "Vector store already initialized."}), 200
 
 @app.route('/api/qa', methods=['POST'])
+
 def quality_assurance():
     init_vector_store()
     global vector_store
