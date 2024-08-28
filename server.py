@@ -60,13 +60,27 @@ syslog_port = int(syslog_port)
 logger_factory = LoggerFactory(app_name, syslog_address, syslog_port)
 logger = logger_factory.get_logger()
 
+def init_vector_store():
+    
+    global vector_store
+    vector_store = JobDescriptionVectorStore()
+    
+    if vector_store.is_empty():
+        csv_file_path = './data/Moribian_Data.csv'
+        load_job_descriptions_from_csv(csv_file_path, vector_store)
+        return jsonify({"message": "Vector store initialized and loaded with data."}), 200
+    else:
+        return jsonify({"message": "Vector store already initialized."}), 200
+
 @app.route('/api/qa', methods=['POST'])
 def quality_assurance():
+    init_vector_store()
     global vector_store
     if vector_store is None:
         return jsonify({"error": "Vector store not initialized. Please call /init_vector_store first."}), 400
     if request.method == 'POST':
         try:
+            init_vector_store()
             data = request.get_json()
             if not data or 'data' not in data:
                 return jsonify({"error": "No data provided"}), 400
@@ -838,17 +852,7 @@ def bulk_custom_prompt():
 #     # Clean up
 #     p.join()
 
-@app.route('/init_vector_store', methods=['GET'])
-def init_vector_store():
-    global vector_store
-    vector_store = JobDescriptionVectorStore()
-    
-    if vector_store.is_empty():
-        csv_file_path = './data/Moribian_Data.csv'
-        load_job_descriptions_from_csv(csv_file_path, vector_store)
-        return jsonify({"message": "Vector store initialized and loaded with data."}), 200
-    else:
-        return jsonify({"message": "Vector store already initialized."}), 200
+# @app.route('/init_vector_store', methods=['GET'])
 
 
 if __name__ == '__main__':
