@@ -36,6 +36,7 @@ app = Flask(__name__)
 CORS(app)
 
 cache = SimpleCache()
+vector_store = None
 # work_available = Event()
 # dict_lock = Lock()
 
@@ -62,6 +63,9 @@ logger = logger_factory.get_logger()
 @app.route('/api/qa', methods=['POST'])
 
 def quality_assurance():
+    global vector_store
+    if vector_store is None:
+        return jsonify({"error": "Vector store not initialized. Please call /init_vector_store first."}), 400
     if request.method == 'POST':
         try:
             vector_store = JobDescriptionVectorStore()
@@ -763,7 +767,10 @@ def upload_file():
 @app.route('/api/automated-bulk-infer', methods=['POST'])
 def bulk_custom_prompt():
     try:
-      
+        received_data = request.json
+        custom_prompt = received_data["response"]
+        infer_data = received_data["dataToInfer"]
+        access_token = bullhorn_auth_helper.get_rest_token()
         access_token = bullhorn_auth_helper.get_rest_token()
 
         if infer_data == "age":
@@ -833,15 +840,19 @@ def bulk_custom_prompt():
 #     # Clean up
 #     p.join()
 
-if __name__ == '__main__':
-    # Initialize the vector store
+@app.route('/init_vector_store', methods=['GET'])
+def init_vector_store():
+    global vector_store
     vector_store = JobDescriptionVectorStore()
-    # vector_store.clear_vectorstore()
-    print(vector_store.is_empty())
-
-    if (vector_store.is_empty()):
+    
+    if vector_store.is_empty():
         csv_file_path = './data/Moribian_Data.csv'
         load_job_descriptions_from_csv(csv_file_path, vector_store)
+        return jsonify({"message": "Vector store initialized and loaded with data."}), 200
+    else:
+        return jsonify({"message": "Vector store already initialized."}), 200
 
+
+if __name__ == '__main__':
     app.run(host='0.0.0.0', port=10000)
 
