@@ -1,6 +1,6 @@
 import os
 import json
-from typing import Dict
+from typing import Dict, List
 from langchain_community.embeddings.openai import OpenAIEmbeddings
 from langchain_community.vectorstores import FAISS
 from langchain.docstore.document import Document
@@ -9,11 +9,10 @@ from langchain.chains import RetrievalQA
 from dotenv import load_dotenv
 from flask import current_app
 import csv
-
 import shutil
 
-
 load_dotenv()
+
 class JobDescriptionVectorStore:
     def __init__(self, save_path: str = "job_descriptions_index"):
         os.environ["OPENAI_API_KEY"] = os.getenv("OPENAI_API_KEY")
@@ -29,15 +28,11 @@ class JobDescriptionVectorStore:
         return FAISS.from_texts(["placeholder"], self.embeddings)
 
     def is_empty(self):
-        # Check if the vectorstore is empty (only contains the placeholder)
         return len(self.vectorstore.docstore._dict) <= 1
 
     def clear_vectorstore(self):
-        # Delete the existing index
         if os.path.exists(self.save_path):
             shutil.rmtree(self.save_path)
-        
-        # Reinitialize with an empty vectorstore
         self.vectorstore = FAISS.from_texts(["placeholder"], self.embeddings)
         self.save_vectorstore()
         print("Vector store has been cleared and reinitialized.")
@@ -51,17 +46,17 @@ class JobDescriptionVectorStore:
         with open(csv_file_path, 'r', newline='', encoding='utf-8') as csvfile:
             reader = csv.DictReader(csvfile)
             for row in reader:
-                # ai_generated_content = row.get("English Tone / Condense 2 API Output", "")
+                ai_generated_content = row.get("English Tone / Condense 2 API Output", "")
                 polished_content = row.get("Approved English Version", "")
 
-                # if ai_generated_content:
-                #     metadata = {
-                #         "language": language,
-                #         "source": "ai_generated",
-                #         **row
-                #     }
-                #     document = Document(page_content=ai_generated_content, metadata=metadata)
-                #     documents.append(document)
+                if ai_generated_content:
+                    metadata = {
+                        "language": language,
+                        "source": "ai_generated",
+                        **row
+                    }
+                    document = Document(page_content=ai_generated_content, metadata=metadata)
+                    documents.append(document)
 
                 if polished_content:
                     metadata = {
@@ -72,12 +67,12 @@ class JobDescriptionVectorStore:
                     document = Document(page_content=polished_content, metadata=metadata)
                     documents.append(document)
 
-                if documents:
-                    self.vectorstore.add_documents(documents)
-                    self.save_vectorstore()
-                    print(f"Added {len(documents)} documents from {csv_file_path}")
-                else:
-                    print("No valid documents found in the CSV file.")
+        if documents:
+            self.vectorstore.add_documents(documents)
+            self.save_vectorstore()
+            print(f"Added {len(documents)} documents from {csv_file_path}")
+        else:
+            print("No valid documents found in the CSV file.")
 
     def save_vectorstore(self):
         self.vectorstore.save_local(self.save_path)
@@ -97,16 +92,48 @@ class JobDescriptionVectorStore:
                 })
         return documents
 
+    def save_results(self, job_id: str, results: Dict[str, str]):
+        """
+        Save the analysis results back to the vector store.
+        
+        :param job_id: A unique identifier for the job description
+        :param results: A dictionary containing JobDescription, Changes, Analysis, and RecruiterRecommendations
+        """
+        content = json.dumps(results)
+        metadata = {
+            "type": "analysis_results",
+            "job_id": job_id
+        }
+        document = Document(page_content=content, metadata=metadata)
+        self.vectorstore.add_documents([document])
+        self.save_vectorstore()
+        print(f"Saved analysis results for job ID: {job_id}")
+
+    def get_analysis_results(self, job_id: str) -> Dict[str, str]:
+        """
+        Retrieve the analysis results for a specific job ID.
+        
+        :param job_id: The unique identifier for the job description
+        :return: A dictionary containing the analysis results, or None if not found
+        """
+        documents = self.vectorstore.similarity_search(
+            f"analysis_results for job ID {job_id}", 
+            k=1, 
+            filter={"type": "analysis_results", "job_id": job_id}
+        )
+        if documents:
+            return json.loads(documents[0].page_content)
+        return None
+
 def load_job_descriptions_from_csv(csv_file_path: str, vector_store: JobDescriptionVectorStore, language: str = "en"):
     try:
         vector_store.add_job_descriptions_from_csv(csv_file_path, language)
         
-        # Print all documents after saving
         documents = vector_store.get_all_documents()
         print(f"Current documents in the vector store: {len(documents)}")
-        for doc in documents[:5]:  # Print details of first 5 documents
+        for doc in documents[:5]:
             print(f"ID: {doc['id']}")
-            print(f"Content: {doc['content'][:100]}...")  # Print first 100 characters
+            print(f"Content: {doc['content'][:100]}...")
             print(f"Metadata: {doc['metadata']}")
             print("---")
     except Exception as e:
