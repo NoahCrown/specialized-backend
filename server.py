@@ -9,7 +9,7 @@ from multiprocessing import Pool, cpu_count, Process, Queue, Event, Manager
 from dotenv import load_dotenv
 from cachelib import SimpleCache
 from flask import Flask, request, abort, jsonify
-from helpers.bulkinfer import run_custom_prompt,chunked_iterable
+from helpers.bulkinfer import run_custom_prompt
 from helpers.get_data import extract_data
 from helpers.app_logger import LoggerFactory
 from helpers.summarize import summarize_data
@@ -505,28 +505,25 @@ def get_bulk_custom_prompt():
         logger.info(f"Attempting to infer {infer_data} of 100 candidates")
         candidate_id_to_name = {item['id']: item['name'] for item in candidate_items}
 
-        # Prepare to store the results
         params_list = [(cid, custom_prompt, infer_data, SPECIALIZED_URL, logger) for cid in candidate_id_to_name.keys()]
 
         results_list = []
 
         num_processes = min(10, cpu_count())
-        chunk_size = max(10, math.ceil(len(params_list) / num_processes))
 
-        # Process in batches of 10
         with Pool(processes=num_processes) as pool:
-            for params_batch in chunked_iterable(params_list, chunk_size):
-                batch_results = pool.map(run_custom_prompt, params_batch)
-                for cid, status, result in batch_results:
-                    candidate_name = candidate_id_to_name[cid]
-                    results_list.append({
-                        'id': cid,  # Include candidate ID if needed
-                        'name': candidate_name,
-                        'status': status,
-                        **result  # Merge result dict which could contain 'data' or 'error'
-                    })
-                    logger.info(f"Inferring {infer_data} of candidateID {cid} {status}")
-        logger.info("inference for 100 candidates successful")
+            batch_results = pool.map(run_custom_prompt, params_list)
+            for cid, status, result in batch_results:
+                candidate_name = candidate_id_to_name[cid]
+                results_list.append({
+                    'id': cid,
+                    'name': candidate_name,
+                    'status': status,
+                    **result
+                })
+                logger.info(f"Inferring {infer_data} of candidateID {cid} {status}")
+
+        logger.info("Inference for 100 candidates successful")
         return jsonify(results_list)
     except Exception as e:
         if "Bad 'BhRestToken' or timed-out." or "BhRestToken" in str(e):
@@ -783,7 +780,6 @@ def bulk_custom_prompt():
         custom_prompt = received_data["response"]
         infer_data = received_data["dataToInfer"]
         access_token = bullhorn_auth_helper.get_rest_token()
-        access_token = bullhorn_auth_helper.get_rest_token()
 
         if infer_data == "age":
             candidates = f"search/Candidate?BhRestToken={access_token}&query=*:* -(dateOfBirth:[* TO *]) AND isDeleted:false&fields=id,name&sort=-dateAdded&count=10&where=isDeleted=false"
@@ -806,27 +802,24 @@ def bulk_custom_prompt():
         logger.info(f"Attempting to infer {infer_data} of 100 candidates")
         candidate_id_to_name = {item['id']: item['name'] for item in candidate_items}
 
-        # Prepare to store the results
         params_list = [(cid, custom_prompt, infer_data, SPECIALIZED_URL, logger) for cid in candidate_id_to_name.keys()]
 
         results_list = []
 
         num_processes = min(10, cpu_count())
-        chunk_size = max(10, math.ceil(len(params_list) / num_processes))
 
-        # Process in batches of 10
         with Pool(processes=num_processes) as pool:
-            for params_batch in chunked_iterable(params_list, chunk_size):
-                batch_results = pool.map(run_custom_prompt, params_batch)
-                for cid, status, result in batch_results:
-                    candidate_name = candidate_id_to_name[cid]
-                    results_list.append({
-                        'id': cid,  # Include candidate ID if needed
-                        'name': candidate_name,
-                        'status': status,
-                        **result  # Merge result dict which could contain 'data' or 'error'
-                    })
-                    logger.info(f"Inferring {infer_data} of candidateID {cid} {status}")
+            batch_results = pool.map(run_custom_prompt, params_list)
+            for cid, status, result in batch_results:
+                candidate_name = candidate_id_to_name[cid]
+                results_list.append({
+                    'id': cid,
+                    'name': candidate_name,
+                    'status': status,
+                    **result
+                })
+                logger.info(f"Inferring {infer_data} of candidateID {cid} {status}")
+        
         logger.info("inference for 100 candidates successful")
         return jsonify(results_list)
     except Exception as e:
@@ -853,7 +846,6 @@ def bulk_custom_prompt():
 #     p.join()
 
 # @app.route('/init_vector_store', methods=['GET'])
-
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=10000)

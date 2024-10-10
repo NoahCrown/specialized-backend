@@ -9,7 +9,7 @@ from langchain.callbacks.manager import get_openai_callback
 
 class ImprovedOutput(BaseModel):
     JobDescription: str = Field(..., description="Improved job description based on comprehensive analysis of AI-generated and human-refined versions")
-    Changes: List[str] = Field(..., description="List of key changes and improvements made to the original AI output")
+    Changes: List[str] = Field(..., description="Numbered list of key changes and improvements made to the original AI output. Each change should be on a new line, properly indented, and include a line break after each item.")
     Analysis: str = Field(..., description="Detailed comparative and gap analysis between AI-generated and human-refined versions")
 
 def improve_prompt(ai_payload, job_description, parser=ImprovedOutput):
@@ -18,11 +18,11 @@ def improve_prompt(ai_payload, job_description, parser=ImprovedOutput):
 
     load_data = """
     <<SYS>>
-    You are an expert AI assistant specializing in analyzing and improving job descriptions. Your task is to enhance AI-generated job descriptions by incorporating insights from human-refined versions, making the content more effective and professional.
+    You are an expert AI assistant specializing in analyzing and improving job descriptions. Your task is to enhance human-refined job descriptions by incorporating insights from AI-generated versions, making the content more effective and professional.
     <<SYS>>
 
     [INST]
-    Analyze the provided AI-generated job description and its human-refined counterpart. Your tasks:
+    Analyze the provided human-refined job description and its AI-generated counterpart. Your tasks:
 
     1. Conduct a thorough analysis comparing both versions and identifying gaps.
     2. Create an improved job description that combines the strengths of both versions.
@@ -50,10 +50,10 @@ def improve_prompt(ai_payload, job_description, parser=ImprovedOutput):
 
     Return your response as a JSON object with the following structure:
     1. "JobDescription": The improved job description, maintaining proper formatting for lists and sections.
-    2. "Changes": A numbered list of key changes and improvements made.
+    2. "Changes": A numbered list of key changes and improvements made. Each change should be on a new line, properly indented, and include a line break after each item.
     3. "Analysis": A detailed comparative and gap analysis, highlighting main differences and areas of improvement. Use subheadings for clarity.
 
-    Ensure all keys and string values in the JSON are enclosed in double quotes. For multiline strings or lists, use appropriate JSON formatting to maintain readability.
+    Ensure all keys and string values in the JSON are enclosed in double quotes. For multiline strings or lists, use appropriate JSON formatting to maintain readability. Use "\\n" for line breaks within JSON strings to ensure proper formatting in the output.
 
     AI-generated Output:
     {ai_payload}

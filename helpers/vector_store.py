@@ -1,7 +1,7 @@
 import os
 import json
 from typing import Dict, List
-from langchain_community.embeddings.openai import OpenAIEmbeddings
+from langchain_openai import OpenAIEmbeddings
 from langchain_community.vectorstores import FAISS
 from langchain.docstore.document import Document
 from langchain_openai import OpenAI
